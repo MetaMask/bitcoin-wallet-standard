@@ -1,0 +1,94 @@
+{
+  "name": "@metamask/bitcoin-wallet-standard",
+  "version": "0.6.0",
+  "license": "ISC",
+  "description": "The MetaMask Bitcoin wallet-standard implementation",
+  "homepage": "https://github.com/MetaMask/bitcoin-wallet-standard#readme",
+  "bugs": {
+    "url": "https://github.com/MetaMask/bitcoin-wallet-standard/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MetaMask/bitcoin-wallet-standard.git"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "ts-bridge --project tsconfig.build.json --clean",
+    "build:docs": "typedoc",
+    "build:types": "tsc --project tsconfig.build.json",
+    "format": "biome format",
+    "format:fix": "biome format --write",
+    "lint": "yarn lint:biome && yarn format && yarn lint:constraints && yarn lint:dependencies --check && yarn lint:changelog",
+    "lint:changelog": "auto-changelog validate --prettier",
+    "lint:constraints": "yarn constraints",
+    "lint:dependencies": "depcheck && yarn dedupe",
+    "lint:biome": "biome check",
+    "lint:fix": "yarn lint:biome --fix && yarn format:fix && yarn lint:constraints --fix && yarn lint:dependencies && yarn lint:changelog",
+    "prepack": "./scripts/prepack.sh",
+    "test": "vitest && attw --pack",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "@exodus/bitcoin-wallet-standard": "^0.0.0",
+    "@olistic/jsontokens": "^4.0.2",
+    "@wallet-standard/base": "^1.1.0",
+    "@wallet-standard/features": "^1.1.0",
+    "@wallet-standard/wallet": "^1.1.0",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.15.3",
+    "@biomejs/biome": "1.9.4",
+    "@lavamoat/allow-scripts": "^3.0.4",
+    "@lavamoat/preinstall-always-fail": "^2.0.0",
+    "@metamask/auto-changelog": "^5.0.1",
+    "@metamask/multichain-api-client": "^0.8.0",
+    "@ts-bridge/cli": "^0.6.3",
+    "@types/node": "^22.13.13",
+    "@vitest/coverage-istanbul": "^3.0.7",
+    "@vitest/eslint-plugin": "^1.1.4",
+    "@yarnpkg/types": "^4.0.0-rc.52",
+    "depcheck": "^1.4.3",
+    "prettier": "^3.5.3",
+    "sats-connect": "^4.1.1",
+    "ts-node": "^10.7.0",
+    "typedoc": "^0.26.11",
+    "typescript": "~5.7.3",
+    "vite": "^6.2.4",
+    "vitest": "^3.0.7"
+  },
+  "packageManager": "yarn@4.1.1",
+  "engines": {
+    "node": "^18.20 || ^20.17 || >=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "@lavamoat/preinstall-always-fail": false,
+      "vite>esbuild": false,
+      "@biomejs/biome": false
+    }
+  }
+}
