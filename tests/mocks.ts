@@ -1,7 +1,7 @@
 import { SOLANA_MAINNET_CHAIN } from '@solana/wallet-standard-chains';
 import bs58 from 'bs58';
 import { vi } from 'vitest';
-import { CaipScope } from '../src/types';
+import { CaipScope } from '../src/types/common';
 
 export const mockAddress = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 export const mockAddress2 = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';

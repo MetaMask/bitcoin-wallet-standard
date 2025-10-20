@@ -1,4 +1,4 @@
-import type { CaipAccountId } from './types';
+import type { CaipAccountId } from './types/common';
 
 /**
  * A regex to validate and parse a CAIP-10 account ID.

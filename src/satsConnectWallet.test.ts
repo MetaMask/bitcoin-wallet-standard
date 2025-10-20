@@ -19,9 +19,9 @@ import {
   mockGetSession,
   mockPublicKey as publicKey,
   mockScope as scope,
-} from '../../tests/mocks';
-import { CaipScope } from '../types';
+} from '../tests/mocks';
 import { MetamaskWalletAccount, SatsConnectWallet } from './satsConnectWallet';
+import { CaipScope } from './types/common';
 
 describe('MetamaskWallet', () => {
   let wallet: SatsConnectWallet;

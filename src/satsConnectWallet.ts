@@ -6,9 +6,8 @@ import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput, StandardEventsListeners, StandardEventsNames } from '@wallet-standard/features';
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
 import bs58 from 'bs58';
-import { metamaskIcon } from '../icon';
-import { type CaipAccountId, Scope, type WalletOptions } from '../types';
-import { getAddressFromCaipAccountId, isAccountChangedEvent } from '../utils';
+import { metamaskIcon } from './icon';
+import { type BitcoinWalletOptions, type CaipAccountId, CaipScope } from './types/common';
 import {
   AddressPurpose,
   AddressType,
@@ -27,7 +26,8 @@ import {
   type SignMultipleTransactionsResponse,
   type SignTransactionResponse,
   WalletType,
-} from './types';
+} from './types/satsConnect';
+import { getAddressFromCaipAccountId, isAccountChangedEvent } from './utils';
 
 /**
  * A read-only implementation of a wallet account.
@@ -43,9 +43,9 @@ export class WalletStandardWalletAccount extends ReadonlyWalletAccount {
 }
 
 /**
- * A wallet implementation for SatsConnect.
+ * A wallet implementation for Bitcoin.
  */
-export class SatsConnectWallet implements Wallet {
+export class BitcoinWallet implements Wallet {
   readonly #listeners: { [E in StandardEventsNames]?: StandardEventsListeners[E][] } = {};
   readonly version = '1.0.0' as const;
   readonly name;
@@ -57,7 +57,7 @@ export class SatsConnectWallet implements Wallet {
   #removeAccountsChangedListener: (() => void) | undefined;
   client: MultichainApiClient;
 
-  constructor({ client, walletName }: WalletOptions) {
+  constructor({ client, walletName }: BitcoinWalletOptions) {
     this.client = client;
     this.name = `${walletName ?? 'MetaMask'}` as const;
     this.#selectedAddressOnPageLoadPromise = this.getInitialSelectedAddress();
@@ -115,7 +115,7 @@ export class SatsConnectWallet implements Wallet {
 
     // Otherwise create a session on Mainnet by default
     if (!this.accounts.length) {
-      await this.#createSession(Scope.MAINNET);
+      await this.#createSession(CaipScope.MAINNET);
     }
 
     // In case user didn't select any Solana scope/account, return
@@ -146,7 +146,7 @@ export class SatsConnectWallet implements Wallet {
     const sessionScopes = new Set(Object.keys(session?.sessionScopes ?? {}));
 
     // Find the first available scope in priority order: mainnet > testnet > regtest.
-    const scopePriorityOrder = [Scope.MAINNET, Scope.TESTNET, Scope.REGTEST];
+    const scopePriorityOrder = [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST];
     const scope = scopePriorityOrder.find((scope) => sessionScopes.has(scope));
 
     // If no scope is available, don't disconnect so that we can create/update a new session
@@ -208,7 +208,7 @@ export class SatsConnectWallet implements Wallet {
     }
   };
 
-  #createSession = async (scope: Scope, addresses?: string[]): Promise<void> => {
+  #createSession = async (scope: CaipScope, addresses?: string[]): Promise<void> => {
     let resolvePromise: (value: string) => void;
     const waitForAccountChangedPromise = new Promise<string>((resolve) => {
       resolvePromise = resolve;
@@ -280,7 +280,7 @@ export class SatsConnectWallet implements Wallet {
             address,
             publicKey: Buffer.from(publicKey).toString('hex'),
             purpose: AddressPurpose.Payment,
-            addressType: AddressType.P2WPKH,
+            addressType: AddressType.p2wpkh,
             walletType: WalletType.SOFTWARE,
           })),
         };

@@ -1,9 +1,9 @@
 import { beforeEach } from 'node:test';
 import { registerWallet } from '@wallet-standard/wallet';
 import { describe, expect, it, vi } from 'vitest';
-import { createMockClient } from '../../tests/mocks';
-import { getSatsConnectWalletStandard, registerBitcoinSatsConnectWalletStandard } from './index';
-import { SatsConnectWallet } from './satsConnectWallet';
+import { createMockClient } from '../tests/mocks';
+import { getBitcoinWalletStandard, registerBitcoinWalletStandard } from './index';
+import { BitcoinWallet } from './satsConnectWallet';
 
 vi.mock('@wallet-standard/wallet', () => ({
   registerWallet: vi.fn(),
@@ -24,21 +24,21 @@ describe('index.ts', () => {
   describe('getWalletStandard', () => {
     it('should return an instance of MetamaskWallet', () => {
       const mockOptions = { client: mockClient, walletName: 'MetaMask Test' };
-      const wallet = getSatsConnectWalletStandard(mockOptions);
+      const wallet = getBitcoinWalletStandard(mockOptions);
 
-      expect(SatsConnectWallet).toHaveBeenCalledWith(mockOptions);
-      expect(wallet).toBeInstanceOf(SatsConnectWallet);
+      expect(BitcoinWallet).toHaveBeenCalledWith(mockOptions);
+      expect(wallet).toBeInstanceOf(BitcoinWallet);
     });
   });
 
-  describe('registerBitcoinSatsConnectWalletStandard', () => {
+  describe('registerBitcoinWalletStandard', () => {
     it('should register the wallet using registerWallet', async () => {
       const mockOptions = { client: mockClient, walletName: 'MetaMask Test' };
 
-      await registerBitcoinSatsConnectWalletStandard(mockOptions);
+      await registerBitcoinWalletStandard(mockOptions);
 
-      expect(SatsConnectWallet).toHaveBeenCalledWith(mockOptions);
-      expect(registerWallet).toHaveBeenCalledWith(expect.any(SatsConnectWallet));
+      expect(BitcoinWallet).toHaveBeenCalledWith(mockOptions);
+      expect(registerWallet).toHaveBeenCalledWith(expect.any(BitcoinWallet));
     });
   });
 });

@@ -1,13 +1,13 @@
 import type { MultichainApiClient } from '@metamask/multichain-api-client';
-import { AddressType } from './satsConnect/types';
-import { reverseMapping } from './utils';
+import { reverseMapping } from '../utils';
+import { AddressType } from './satsConnect';
 
 export type CaipChainIdStruct = `${string}:${string}`;
 export type CaipAccountId = `${string}:${string}:${string}`;
 
 export type DeepWriteable<T> = { -readonly [P in keyof T]: DeepWriteable<T[P]> };
 
-export type WalletOptions = {
+export type BitcoinWalletOptions = {
   client: MultichainApiClient;
   walletName?: string;
 };
@@ -46,10 +46,10 @@ export enum CaipAccountType {
 }
 
 export const caipToAddressType: Record<CaipAccountType, AddressType> = {
-  [CaipAccountType.P2PKH]: AddressType.P2PKH,
-  [CaipAccountType.P2SH]: AddressType.P2SH,
-  [CaipAccountType.P2WPKH]: AddressType.P2WPKH,
-  [CaipAccountType.P2TR]: AddressType.P2TR,
+  [CaipAccountType.P2PKH]: AddressType.p2pkh,
+  [CaipAccountType.P2SH]: AddressType.p2sh,
+  [CaipAccountType.P2WPKH]: AddressType.p2wpkh,
+  [CaipAccountType.P2TR]: AddressType.p2tr,
 };
 
 export const addressTypeToCaip = reverseMapping(caipToAddressType);

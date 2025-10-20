@@ -24,13 +24,14 @@ export type {
 
 /**
  * Address purposes supported by SatsConnect.
+ * We should keep the same casing as in 'sats-connect' package.
  */
 export enum AddressPurpose {
-  ORDINALS = 'ordinals',
+  Ordinals = 'ordinals',
   Payment = 'payment',
-  STACKS = 'stacks',
-  STARKNET = 'starknet',
-  SPARK = 'spark',
+  Stacks = 'stacks',
+  Starknet = 'starknet',
+  Spark = 'spark',
 }
 
 /**
@@ -44,16 +45,17 @@ export enum WalletType {
 
 /**
  * Address types supported by SatsConnect.
+ * We should keep the same casing as in 'sats-connect' package.
  */
 export enum AddressType {
-  P2PKH = 'p2pkh',
-  P2SH = 'p2sh',
-  P2WPKH = 'p2wpkh',
-  P2WSH = 'p2wsh',
-  P2TR = 'p2tr',
-  STACKS = 'stacks',
-  STARKNET = 'starknet',
-  SPARK = 'spark',
+  p2pkh = 'p2pkh',
+  p2sh = 'p2sh',
+  p2wpkh = 'p2wpkh',
+  p2wsh = 'p2wsh',
+  p2tr = 'p2tr',
+  stacks = 'stacks',
+  starknet = 'starknet',
+  spark = 'spark',
 }
 
 /**
