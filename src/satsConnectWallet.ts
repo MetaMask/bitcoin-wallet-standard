@@ -5,7 +5,6 @@ import { decodeToken } from '@olistic/jsontokens';
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput, StandardEventsListeners, StandardEventsNames } from '@wallet-standard/features';
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
-import bs58 from 'bs58';
 import { metamaskIcon } from './icon';
 import { type BitcoinWalletOptions, type CaipAccountId, CaipScope } from './types/common';
 import {
@@ -187,7 +186,7 @@ export class BitcoinWallet implements Wallet {
   #getAccountFromAddress(address: string) {
     return new WalletStandardWalletAccount({
       address,
-      publicKey: new Uint8Array(bs58.decode(address)),
+      publicKey: new Uint8Array(Buffer.from(address)),
       chains: this.chains,
     });
   }
