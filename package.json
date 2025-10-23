@@ -49,11 +49,11 @@
   },
   "dependencies": {
     "@exodus/bitcoin-wallet-standard": "^0.0.0",
-    "@olistic/jsontokens": "^4.0.2",
     "@wallet-standard/base": "^1.1.0",
     "@wallet-standard/features": "^1.1.0",
     "@wallet-standard/wallet": "^1.1.0",
-    "bs58": "^6.0.0"
+    "bs58": "^6.0.0",
+    "jsontokens": "^4.0.1"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.15.3",

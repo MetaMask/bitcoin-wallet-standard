@@ -698,6 +698,7 @@ __metadata:
     "@yarnpkg/types": "npm:^4.0.0-rc.52"
     bs58: "npm:^6.0.0"
     depcheck: "npm:^1.4.3"
+    jsontokens: "npm:^4.0.1"
     prettier: "npm:^3.5.3"
     sats-connect: "npm:^4.1.1"
     ts-node: "npm:^10.7.0"
@@ -957,17 +958,6 @@ __metadata:
   dependencies:
     "@octokit/openapi-types": "npm:^24.2.0"
   checksum: 10/32f8f5010d7faae128b0cdd0c221f0ca8c3781fe44483ecd87162b3da507db667f7369acda81340f6e2c9c374d9a938803409c6085c2c01d98210b6c58efb99a
-  languageName: node
-  linkType: hard
-
-"@olistic/jsontokens@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "@olistic/jsontokens@npm:4.0.2"
-  dependencies:
-    "@noble/hashes": "npm:^1.1.2"
-    "@noble/secp256k1": "npm:^1.6.3"
-    base64-js: "npm:^1.5.1"
-  checksum: 10/968a8b07952c78568116acc5efc61a073469507950eb1ef0d10ddd2ffa49ceab2a6cfd881ad871acdff324407c798446f13b3560598a0baef6387921a76c010b
   languageName: node
   linkType: hard
 
@@ -3245,7 +3235,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsontokens@npm:4.0.1":
+"jsontokens@npm:4.0.1, jsontokens@npm:^4.0.1":
   version: 4.0.1
   resolution: "jsontokens@npm:4.0.1"
   dependencies:

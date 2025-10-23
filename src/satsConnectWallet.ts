@@ -1,7 +1,7 @@
 import type { BitcoinConnectFeature, BitcoinConnectInput } from '@exodus/bitcoin-wallet-standard';
 import { BITCOIN_CHAINS, BitcoinConnect } from '@exodus/bitcoin-wallet-standard';
 import type { MultichainApiClient, SessionData } from '@metamask/multichain-api-client';
-import { decodeToken } from '@olistic/jsontokens';
+import { decodeToken } from 'jsontokens';
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput, StandardEventsListeners, StandardEventsNames } from '@wallet-standard/features';
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
@@ -21,8 +21,10 @@ import {
   type RpcResponse,
   type SatsConnectFeature,
   SatsConnectFeatureName,
+  type SendBtcTransactionOptions,
   type SendBtcTransactionResponse,
   type SignMultipleTransactionsResponse,
+  type SignTransactionOptions,
   type SignTransactionResponse,
   WalletType,
 } from './types/satsConnect';
@@ -50,7 +52,7 @@ export class BitcoinWallet implements Wallet {
   readonly name;
   readonly icon = metamaskIcon;
   readonly chains: IdentifierArray = BITCOIN_CHAINS;
-  protected scope: IdentifierArray[number] | undefined;
+  protected scope: CaipScope | undefined;
   #selectedAddressOnPageLoadPromise: Promise<string | undefined> | undefined;
   #account: WalletStandardWalletAccount | undefined;
   #removeAccountsChangedListener: (() => void) | undefined;
@@ -296,17 +298,71 @@ export class BitcoinWallet implements Wallet {
 
       signTransaction: async (request: string): Promise<SignTransactionResponse> => {
         console.log('SatsConnect signTransaction', { request });
-        throw new Error('Method not implemented.');
+
+        if (!this.scope) {
+          throw new Error('Scope not found.');
+        }
+
+        const { payload } = decodeToken(request) as unknown as SignTransactionOptions;
+        // TODO: Check payload.network vs this.scope
+        // TODO: we're currently not using payload.message. BTC Snap update required if we need to use it.
+
+        const signTransactionRes = await this.client.invokeMethod({
+          scope: this.scope,
+          request: {
+            method: 'signPsbt',
+            params: {
+              psbt: payload.psbtBase64,
+              options: { fill: true, broadcast: payload.broadcast ?? false },
+              account: { address: this.#account?.address ?? '' },
+            },
+          },
+        });
+        return { psbtBase64: signTransactionRes.psbt, txId: signTransactionRes.txid ?? undefined };
       },
 
       signMessage: async (request: string): Promise<string> => {
         console.log('SatsConnect signMessage', { request });
-        throw new Error('Method not implemented.');
+
+        if (!this.scope) {
+          throw new Error('Scope not found.');
+        }
+
+        const signMessageRes = await this.client.invokeMethod({
+          scope: this.scope,
+          request: {
+            method: 'signMessage',
+            params: { message: request, account: { address: this.#account?.address ?? '' } },
+          },
+        });
+
+        return signMessageRes.signature;
       },
 
       sendBtcTransaction: async (request: string): Promise<SendBtcTransactionResponse> => {
         console.log('SatsConnect sendBtcTransaction', { request });
-        throw new Error('Method not implemented.');
+
+        if (!this.scope) {
+          throw new Error('Scope not found.');
+        }
+
+        const { payload } = decodeToken(request) as unknown as SendBtcTransactionOptions;
+
+        const sendBtcTransactionRes = await this.client.invokeMethod({
+          scope: this.scope,
+          request: {
+            method: 'sendTransfer',
+            params: {
+              recipients: payload.recipients.map((recipient) => ({
+                address: recipient.address,
+                amount: recipient.amountSats.toString(),
+              })),
+              account: { address: this.#account?.address ?? '' },
+            },
+          },
+        });
+
+        return sendBtcTransactionRes.txid;
       },
 
       createInscription: async (request: string): Promise<CreateInscriptionResponse> => {
@@ -330,7 +386,7 @@ export class BitcoinWallet implements Wallet {
       },
 
       getCapabilities: async (): Promise<GetCapabilitiesResponse> => {
-        return ['connect', 'signTransaction', 'signMessage'];
+        return ['connect', 'sendBtcTransaction', 'signTransaction', 'signMessage'];
       },
     };
   };
