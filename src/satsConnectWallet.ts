@@ -1,7 +1,7 @@
 import type { BitcoinConnectFeature, BitcoinConnectInput } from '@exodus/bitcoin-wallet-standard';
 import { BITCOIN_CHAINS, BitcoinConnect } from '@exodus/bitcoin-wallet-standard';
 import type { MultichainApiClient, SessionData } from '@metamask/multichain-api-client';
-import { decodeToken } from 'jsontokens';
+import { decodeToken, createUnsecuredToken } from 'jsontokens';
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput, StandardEventsListeners, StandardEventsNames } from '@wallet-standard/features';
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
@@ -29,13 +29,14 @@ import {
   WalletType,
 } from './types/satsConnect';
 import { getAddressFromCaipAccountId, isAccountChangedEvent } from './utils';
+import { BitcoinSignTransaction, BitcoinSignAndSendTransaction, BitcoinSignMessage, BitcoinSignTransactionInput, BitcoinSignTransactionOutput, BitcoinSignMessageInput, BitcoinSignMessageOutput, BitcoinStandardFeatures, BitcoinSignAndSendTransactionOutput, BitcoinSignAndSendTransactionInput } from './features';
 
 /**
  * A read-only implementation of a wallet account.
  */
 export class WalletStandardWalletAccount extends ReadonlyWalletAccount {
   constructor({ address, publicKey, chains }: { address: string; publicKey: Uint8Array; chains: IdentifierArray }) {
-    const features: IdentifierArray = [SatsConnectFeatureName];
+    const features: IdentifierArray = [SatsConnectFeatureName, BitcoinConnect, BitcoinSignTransaction, BitcoinSignAndSendTransaction, BitcoinSignMessage];
     super({ address, publicKey, chains, features });
     if (new.target === WalletStandardWalletAccount) {
       Object.freeze(this);
@@ -68,14 +69,50 @@ export class BitcoinWallet implements Wallet {
     return this.#account ? [this.#account] : [];
   }
 
-  get features(): SatsConnectFeature & BitcoinConnectFeature {
+  get features(): SatsConnectFeature & BitcoinStandardFeatures {
     return {
       [BitcoinConnect]: {
-        version: '1.0.0',
+        version: this.version,
         connect: this.#connect,
       },
       [SatsConnectFeatureName]: {
         provider: this.#getSatsConnectProvider(),
+      },
+      [BitcoinSignTransaction]: {
+        version: this.version,
+        signTransaction: async (...inputs: readonly BitcoinSignTransactionInput[]): Promise<readonly BitcoinSignTransactionOutput[]> => {
+          const results: SignTransactionResponse[] = [];
+          for (const input of inputs) {
+            const result = await this.#signTransactionInternal(Buffer.from(input.psbt).toString('base64'), false);
+            results.push(result);
+          }
+          return results.map((result) => ({ signedPsbt: Buffer.from(result.psbtBase64, 'base64') }));
+        },
+      },
+      [BitcoinSignAndSendTransaction]: {
+        version: this.version,
+        signAndSendTransaction: async (...inputs: readonly BitcoinSignAndSendTransactionInput[]): Promise<readonly BitcoinSignAndSendTransactionOutput[]> => {
+          const results: BitcoinSignAndSendTransactionOutput[] = [];
+          for (const input of inputs) {
+            const result = await this.#signTransactionInternal(Buffer.from(input.psbt).toString('base64'), true);
+            if (!result.txId) {
+              throw new Error('Transaction ID not found.');
+            }
+            results.push({ txId: result.txId });
+          }
+          return results;
+        },
+      },
+      [BitcoinSignMessage]: {
+        version: this.version,
+        signMessage: async (...inputs: readonly BitcoinSignMessageInput[]): Promise<readonly BitcoinSignMessageOutput[]> => {
+          const results: BitcoinSignMessageOutput[] = [];
+          for (const input of inputs) {
+            const result = await this.#signMessageInternal(Buffer.from(input.message).toString('base64'));
+            results.push({ signedMessage: Buffer.from(result, 'base64'), signature: Buffer.from(result, 'base64') });
+          }
+          return results;
+        },
       },
     };
   }
@@ -193,6 +230,45 @@ export class BitcoinWallet implements Wallet {
     });
   }
 
+  async #signMessageInternal(message: string): Promise<string> {
+    if (!this.scope) {
+      throw new Error('Scope not found.');
+    }
+
+    const signMessageRes = await this.client.invokeMethod({
+      scope: this.scope,
+      request: {
+        method: 'signMessage',
+        params: { message, account: { address: this.#account?.address ?? '' } },
+      },
+    });
+
+    return signMessageRes.signature;
+  }
+
+  async #signTransactionInternal(psbtBase64: string, broadcast: boolean = false): Promise<SignTransactionResponse> {
+    if (!this.scope) {
+      throw new Error('Scope not found.');
+    }
+
+    const signTransactionRes = await this.client.invokeMethod({
+      scope: this.scope,
+      request: {
+        method: 'signPsbt',
+        params: {
+          psbt: psbtBase64,
+          options: { fill: true, broadcast },
+          account: { address: this.#account?.address ?? '' },
+        },
+      },
+    });
+
+    return {
+      psbtBase64: signTransactionRes.psbt,
+      txId: signTransactionRes.txid ?? undefined
+    };
+  }
+
   #tryRestoringSession = async (): Promise<void> => {
     try {
       const existingSession = await this.client.getSession();
@@ -299,44 +375,17 @@ export class BitcoinWallet implements Wallet {
       signTransaction: async (request: string): Promise<SignTransactionResponse> => {
         console.log('SatsConnect signTransaction', { request });
 
-        if (!this.scope) {
-          throw new Error('Scope not found.');
-        }
-
         const { payload } = decodeToken(request) as unknown as SignTransactionOptions;
         // TODO: Check payload.network vs this.scope
         // TODO: we're currently not using payload.message. BTC Snap update required if we need to use it.
 
-        const signTransactionRes = await this.client.invokeMethod({
-          scope: this.scope,
-          request: {
-            method: 'signPsbt',
-            params: {
-              psbt: payload.psbtBase64,
-              options: { fill: true, broadcast: payload.broadcast ?? false },
-              account: { address: this.#account?.address ?? '' },
-            },
-          },
-        });
-        return { psbtBase64: signTransactionRes.psbt, txId: signTransactionRes.txid ?? undefined };
+        return this.#signTransactionInternal(payload.psbtBase64, payload.broadcast);
       },
 
       signMessage: async (request: string): Promise<string> => {
         console.log('SatsConnect signMessage', { request });
 
-        if (!this.scope) {
-          throw new Error('Scope not found.');
-        }
-
-        const signMessageRes = await this.client.invokeMethod({
-          scope: this.scope,
-          request: {
-            method: 'signMessage',
-            params: { message: request, account: { address: this.#account?.address ?? '' } },
-          },
-        });
-
-        return signMessageRes.signature;
+        return this.#signMessageInternal(request);
       },
 
       sendBtcTransaction: async (request: string): Promise<SendBtcTransactionResponse> => {
@@ -377,7 +426,16 @@ export class BitcoinWallet implements Wallet {
 
       signMultipleTransactions: async (request: string): Promise<SignMultipleTransactionsResponse> => {
         console.log('SatsConnect signMultipleTransactions', { request });
-        throw new Error('Method not implemented.');
+
+        const { payload } = decodeToken(request) as unknown as { payload: { transactions: string[] } };
+        const results: SignTransactionResponse[] = [];
+
+        for (const tx of payload.transactions) {
+          const result = await this.#signTransactionInternal(tx);
+          results.push(result);
+        }
+
+        return results;
       },
 
       addListener: (info: ListenerInfo): (() => void) => {
