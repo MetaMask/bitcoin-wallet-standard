@@ -1,10 +1,22 @@
-import type { BitcoinConnectFeature, BitcoinConnectInput } from '@exodus/bitcoin-wallet-standard';
+import type { BitcoinConnectInput } from '@exodus/bitcoin-wallet-standard';
 import { BITCOIN_CHAINS, BitcoinConnect } from '@exodus/bitcoin-wallet-standard';
 import type { MultichainApiClient, SessionData } from '@metamask/multichain-api-client';
-import { decodeToken, createUnsecuredToken } from 'jsontokens';
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput, StandardEventsListeners, StandardEventsNames } from '@wallet-standard/features';
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
+import { decodeToken } from 'jsontokens';
+import {
+  BitcoinSignAndSendTransaction,
+  type BitcoinSignAndSendTransactionInput,
+  type BitcoinSignAndSendTransactionOutput,
+  BitcoinSignMessage,
+  type BitcoinSignMessageInput,
+  type BitcoinSignMessageOutput,
+  BitcoinSignTransaction,
+  type BitcoinSignTransactionInput,
+  type BitcoinSignTransactionOutput,
+  type BitcoinStandardFeatures,
+} from './features';
 import { metamaskIcon } from './icon';
 import { type BitcoinWalletOptions, type CaipAccountId, CaipScope } from './types/common';
 import {
@@ -29,14 +41,19 @@ import {
   WalletType,
 } from './types/satsConnect';
 import { getAddressFromCaipAccountId, isAccountChangedEvent } from './utils';
-import { BitcoinSignTransaction, BitcoinSignAndSendTransaction, BitcoinSignMessage, BitcoinSignTransactionInput, BitcoinSignTransactionOutput, BitcoinSignMessageInput, BitcoinSignMessageOutput, BitcoinStandardFeatures, BitcoinSignAndSendTransactionOutput, BitcoinSignAndSendTransactionInput } from './features';
 
 /**
  * A read-only implementation of a wallet account.
  */
 export class WalletStandardWalletAccount extends ReadonlyWalletAccount {
   constructor({ address, publicKey, chains }: { address: string; publicKey: Uint8Array; chains: IdentifierArray }) {
-    const features: IdentifierArray = [SatsConnectFeatureName, BitcoinConnect, BitcoinSignTransaction, BitcoinSignAndSendTransaction, BitcoinSignMessage];
+    const features: IdentifierArray = [
+      SatsConnectFeatureName,
+      BitcoinConnect,
+      BitcoinSignTransaction,
+      BitcoinSignAndSendTransaction,
+      BitcoinSignMessage,
+    ];
     super({ address, publicKey, chains, features });
     if (new.target === WalletStandardWalletAccount) {
       Object.freeze(this);
@@ -80,7 +97,9 @@ export class BitcoinWallet implements Wallet {
       },
       [BitcoinSignTransaction]: {
         version: this.version,
-        signTransaction: async (...inputs: readonly BitcoinSignTransactionInput[]): Promise<readonly BitcoinSignTransactionOutput[]> => {
+        signTransaction: async (
+          ...inputs: readonly BitcoinSignTransactionInput[]
+        ): Promise<readonly BitcoinSignTransactionOutput[]> => {
           const results: SignTransactionResponse[] = [];
           for (const input of inputs) {
             const result = await this.#signTransactionInternal(Buffer.from(input.psbt).toString('base64'), false);
@@ -91,7 +110,9 @@ export class BitcoinWallet implements Wallet {
       },
       [BitcoinSignAndSendTransaction]: {
         version: this.version,
-        signAndSendTransaction: async (...inputs: readonly BitcoinSignAndSendTransactionInput[]): Promise<readonly BitcoinSignAndSendTransactionOutput[]> => {
+        signAndSendTransaction: async (
+          ...inputs: readonly BitcoinSignAndSendTransactionInput[]
+        ): Promise<readonly BitcoinSignAndSendTransactionOutput[]> => {
           const results: BitcoinSignAndSendTransactionOutput[] = [];
           for (const input of inputs) {
             const result = await this.#signTransactionInternal(Buffer.from(input.psbt).toString('base64'), true);
@@ -105,7 +126,9 @@ export class BitcoinWallet implements Wallet {
       },
       [BitcoinSignMessage]: {
         version: this.version,
-        signMessage: async (...inputs: readonly BitcoinSignMessageInput[]): Promise<readonly BitcoinSignMessageOutput[]> => {
+        signMessage: async (
+          ...inputs: readonly BitcoinSignMessageInput[]
+        ): Promise<readonly BitcoinSignMessageOutput[]> => {
           const results: BitcoinSignMessageOutput[] = [];
           for (const input of inputs) {
             const result = await this.#signMessageInternal(Buffer.from(input.message).toString('base64'));
@@ -246,7 +269,7 @@ export class BitcoinWallet implements Wallet {
     return signMessageRes.signature;
   }
 
-  async #signTransactionInternal(psbtBase64: string, broadcast: boolean = false): Promise<SignTransactionResponse> {
+  async #signTransactionInternal(psbtBase64: string, broadcast = false): Promise<SignTransactionResponse> {
     if (!this.scope) {
       throw new Error('Scope not found.');
     }
@@ -265,7 +288,7 @@ export class BitcoinWallet implements Wallet {
 
     return {
       psbtBase64: signTransactionRes.psbt,
-      txId: signTransactionRes.txid ?? undefined
+      txId: signTransactionRes.txid ?? undefined,
     };
   }
 
