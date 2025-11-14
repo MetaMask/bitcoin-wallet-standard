@@ -338,7 +338,7 @@ export class BitcoinWallet implements Wallet {
         },
       },
       sessionProperties: {
-        solana_accountChanged_notifications: true,
+        bitcoin_accountChanged_notifications: true,
       },
     });
 
