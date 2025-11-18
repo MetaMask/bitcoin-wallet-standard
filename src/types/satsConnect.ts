@@ -8,6 +8,7 @@ import type { BitcoinProvider } from 'sats-connect';
 export type {
   BitcoinProvider,
   GetAddressResponse,
+  SignMessageOptions,
   SignTransactionOptions,
   SignTransactionResponse,
   SignMultipleTransactionsResponse,

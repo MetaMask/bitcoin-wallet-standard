@@ -35,6 +35,7 @@ import {
   SatsConnectFeatureName,
   type SendBtcTransactionOptions,
   type SendBtcTransactionResponse,
+  type SignMessageOptions,
   type SignMultipleTransactionsResponse,
   type SignTransactionOptions,
   type SignTransactionResponse,
@@ -257,12 +258,21 @@ export class BitcoinWallet implements Wallet {
     if (!this.scope) {
       throw new Error('Scope not found.');
     }
+    const {
+      payload: { message: messagePayload, network },
+    } = decodeToken(message) as unknown as SignMessageOptions;
+
+    // TODO: update network if needed
+    console.log('WalletStandard::#signMessageInternal network', { network });
 
     const signMessageRes = await this.client.invokeMethod({
       scope: this.scope,
       request: {
         method: 'signMessage',
-        params: { message, account: { address: this.#account?.address ?? '' } },
+        params: {
+          message: messagePayload,
+          account: { address: this.#account?.address ?? '' },
+        },
       },
     });
 
