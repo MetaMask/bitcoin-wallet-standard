@@ -180,7 +180,7 @@ export class BitcoinWallet implements Wallet {
       await this.#createSession(CaipScope.MAINNET);
     }
 
-    // In case user didn't select any Solana scope/account, return
+    // In case user didn't select any Bitcoin scope/account, return
     if (!this.accounts.length) {
       return { accounts: [] };
     }
@@ -191,10 +191,10 @@ export class BitcoinWallet implements Wallet {
 
   /**
    * Updates the session and the account to connect to.
-   * This method handles the logic for selecting the appropriate Solana network scope (mainnet/devnet/testnet)
+   * This method handles the logic for selecting the appropriate Bitcoin network scope (mainnet/testnet/regtest)
    * and account to connect to based on the following priority:
-   * 1. First tries to find an available scope in order: mainnet > devnet > testnet, supposing the same set of accounts
-   *    is available for all Solana scopes
+   * 1. First tries to find an available scope in order: mainnet > testnet > regtest, supposing the same set of accounts
+   *    is available for all Bitcoin scopes
    * 2. For account selection:
    *    - First tries to use the selectedAddress param, most likely coming from the accountsChanged event
    *    - Falls back to the previously saved account if it exists in the scope
@@ -218,7 +218,7 @@ export class BitcoinWallet implements Wallet {
     }
     const scopeAccounts = session?.sessionScopes[scope]?.accounts;
 
-    // In case the Solana scope is available but without any accounts
+    // In case the Bitcoin scope is available but without any accounts
     // Could happen if the user already created a session using ethereum injected provider for example or the SDK
     // Don't disconnect so that we can create/update a new session
     if (!scopeAccounts?.[0]) {
@@ -422,13 +422,12 @@ export class BitcoinWallet implements Wallet {
       },
 
       sendBtcTransaction: async (request: string): Promise<SendBtcTransactionResponse> => {
-        console.log('SatsConnect sendBtcTransaction', { request });
-
         if (!this.scope) {
           throw new Error('Scope not found.');
         }
 
         const { payload } = decodeToken(request) as unknown as SendBtcTransactionOptions;
+        console.log('SatsConnect sendBtcTransaction', { payload });
 
         const sendBtcTransactionRes = await this.client.invokeMethod({
           scope: this.scope,
