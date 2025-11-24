@@ -132,7 +132,7 @@ export class BitcoinWallet implements Wallet {
         ): Promise<readonly BitcoinSignMessageOutput[]> => {
           const results: BitcoinSignMessageOutput[] = [];
           for (const input of inputs) {
-            const result = await this.#signMessageInternal(Buffer.from(input.message).toString('base64'));
+            const result = await this.#signMessageInternal(Buffer.from(input.message).toString('utf-8'));
             results.push({ signedMessage: Buffer.from(result, 'base64'), signature: Buffer.from(result, 'base64') });
           }
           return results;
@@ -258,19 +258,13 @@ export class BitcoinWallet implements Wallet {
     if (!this.scope) {
       throw new Error('Scope not found.');
     }
-    const {
-      payload: { message: messagePayload, network },
-    } = decodeToken(message) as unknown as SignMessageOptions;
-
-    // TODO: update network if needed
-    console.log('WalletStandard::#signMessageInternal network', { network });
 
     const signMessageRes = await this.client.invokeMethod({
       scope: this.scope,
       request: {
         method: 'signMessage',
         params: {
-          message: messagePayload,
+          message,
           account: { address: this.#account?.address ?? '' },
         },
       },
@@ -418,7 +412,11 @@ export class BitcoinWallet implements Wallet {
       signMessage: async (request: string): Promise<string> => {
         console.log('SatsConnect signMessage', { request });
 
-        return this.#signMessageInternal(request);
+        const {
+          payload: { message: messagePayload },
+        } = decodeToken(request) as unknown as SignMessageOptions;
+
+        return this.#signMessageInternal(messagePayload);
       },
 
       sendBtcTransaction: async (request: string): Promise<SendBtcTransactionResponse> => {
