@@ -6,6 +6,7 @@ import type { StandardConnectOutput, StandardEventsListeners, StandardEventsName
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
 import { decodeToken } from 'jsontokens';
 import {
+  BitcoinDisconnect,
   BitcoinSignAndSendTransaction,
   type BitcoinSignAndSendTransactionInput,
   type BitcoinSignAndSendTransactionOutput,
@@ -92,6 +93,10 @@ export class BitcoinWallet implements Wallet {
       [BitcoinConnect]: {
         version: this.version,
         connect: this.#connect,
+      },
+      [BitcoinDisconnect]: {
+        version: this.version,
+        disconnect: this.#disconnect,
       },
       [SatsConnectFeatureName]: {
         provider: this.#getSatsConnectProvider(),
@@ -295,6 +300,21 @@ export class BitcoinWallet implements Wallet {
       txId: signTransactionRes.txid ?? undefined,
     };
   }
+
+  #disconnect = async (): Promise<void> => {
+    const selectedAccount = this.#account;
+
+    if (!selectedAccount) {
+      throw new Error('No connected account');
+    }
+
+    await this.client.revokeSession({ scopes: [this.scope ?? CaipScope.MAINNET] });
+
+    this.#account = undefined;
+    this.scope = undefined;
+    this.#removeAccountsChangedListener?.();
+    this.#removeAccountsChangedListener = undefined;
+  };
 
   #tryRestoringSession = async (): Promise<void> => {
     try {
