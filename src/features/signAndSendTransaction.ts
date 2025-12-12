@@ -14,14 +14,14 @@ export const BitcoinSignAndSendTransaction = 'bitcoin:signAndSendTransaction';
  * @group SignAndSendTransaction
  */
 export type BitcoinSignAndSendTransactionFeature = {
-    /** Name of the feature. */
-    readonly [BitcoinSignAndSendTransaction]: {
-        /** Version of the feature implemented by the Wallet. */
-        readonly version: BitcoinSignAndSendTransactionVersion;
+  /** Name of the feature. */
+  readonly [BitcoinSignAndSendTransaction]: {
+    /** Version of the feature implemented by the Wallet. */
+    readonly version: BitcoinSignAndSendTransactionVersion;
 
-        /** Method to call to use the feature. */
-        readonly signAndSendTransaction: BitcoinSignAndSendTransactionMethod;
-    };
+    /** Method to call to use the feature. */
+    readonly signAndSendTransaction: BitcoinSignAndSendTransactionMethod;
+  };
 };
 
 /**
@@ -37,7 +37,7 @@ export type BitcoinSignAndSendTransactionVersion = '1.0.0';
  * @group SignAndSendTransaction
  */
 export type BitcoinSignAndSendTransactionMethod = (
-    ...inputs: readonly BitcoinSignAndSendTransactionInput[]
+  ...inputs: readonly BitcoinSignAndSendTransactionInput[]
 ) => Promise<readonly BitcoinSignAndSendTransactionOutput[]>;
 
 /**
@@ -46,8 +46,8 @@ export type BitcoinSignAndSendTransactionMethod = (
  * @group SignAndSendTransaction
  */
 export interface BitcoinSignAndSendTransactionInput extends BitcoinSignTransactionInput {
-    /** Chain to use. */
-    readonly chain: IdentifierString;
+  /** Chain to use. */
+  readonly chain: IdentifierString;
 }
 
 /**
@@ -56,6 +56,6 @@ export interface BitcoinSignAndSendTransactionInput extends BitcoinSignTransacti
  * @group SignAndSendTransaction
  */
 export interface BitcoinSignAndSendTransactionOutput {
-    /** Transaction ID (transaction hash). */
-    readonly txId: string;
+  /** Transaction ID (transaction hash). */
+  readonly txId: string;
 }
