@@ -395,7 +395,7 @@ export class BitcoinWallet implements Wallet {
 
         const { purposes } = payload as unknown as BitcoinConnectInput;
         if (purposes.length !== 1 || purposes.at(0) !== AddressPurpose.Payment) {
-          throw new Error('Only payment addresses are supported.');
+          throw new Error(`Only payment addresses are supported. Received: ${purposes.join(', ')}`);
         }
 
         await this.#connect();
