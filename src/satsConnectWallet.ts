@@ -52,6 +52,7 @@ export class WalletStandardWalletAccount extends ReadonlyWalletAccount {
     const features: IdentifierArray = [
       SatsConnectFeatureName,
       BitcoinConnect,
+      BitcoinDisconnect,
       BitcoinSignTransaction,
       BitcoinSignAndSendTransaction,
       BitcoinSignMessage,
