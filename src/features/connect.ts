@@ -11,13 +11,13 @@ export const BitcoinConnect = 'bitcoin:connect';
  * @group Connect
  */
 export type BitcoinConnectFeature = {
-    /** Name of the feature. */
-    readonly [BitcoinConnect]: {
-        /** Version of the feature implemented by the Wallet. */
-        readonly version: BitcoinConnectVersion;
-        /** Method to call to use the feature. */
-        readonly connect: BitcoinConnectMethod;
-    };
+  /** Name of the feature. */
+  readonly [BitcoinConnect]: {
+    /** Version of the feature implemented by the Wallet. */
+    readonly version: BitcoinConnectVersion;
+    /** Method to call to use the feature. */
+    readonly connect: BitcoinConnectMethod;
+  };
 };
 
 /**
@@ -40,8 +40,8 @@ export type BitcoinConnectMethod = (input: BitcoinConnectInput) => Promise<Bitco
  * @group Connect
  */
 export interface BitcoinConnectInput {
-    /** Type of addresses the app wants to obtain authorization to use. */
-    readonly purposes: BitcoinAddressPurpose[];
+  /** Type of addresses the app wants to obtain authorization to use. */
+  readonly purposes: BitcoinAddressPurpose[];
 }
 
 /** Purpose that determines the type of address of the account returned by the wallet. */
@@ -53,11 +53,11 @@ export type BitcoinAddressPurpose = 'ordinals' | 'payment';
  * @group Connect
  */
 export interface BitcoinConnectOutput {
-    /**
-     * List of accounts in the {@link "@wallet-standard/base".Wallet} that the app has been authorized to use.
-     *
-     * The accounts will have addresses that correspond with the `purposes` in the {@link BitcoinConnectInput}, and will
-     * be returned in the same order.
-     */
-    readonly accounts: readonly WalletAccount[];
+  /**
+   * List of accounts in the {@link "@wallet-standard/base".Wallet} that the app has been authorized to use.
+   *
+   * The accounts will have addresses that correspond with the `purposes` in the {@link BitcoinConnectInput}, and will
+   * be returned in the same order.
+   */
+  readonly accounts: readonly WalletAccount[];
 }

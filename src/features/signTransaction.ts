@@ -11,14 +11,14 @@ export const BitcoinSignTransaction = 'bitcoin:signTransaction';
  * @group SignTransaction
  */
 export type BitcoinSignTransactionFeature = {
-    /** Name of the feature. */
-    readonly [BitcoinSignTransaction]: {
-        /** Version of the feature implemented by the Wallet. */
-        readonly version: BitcoinSignTransactionVersion;
+  /** Name of the feature. */
+  readonly [BitcoinSignTransaction]: {
+    /** Version of the feature implemented by the Wallet. */
+    readonly version: BitcoinSignTransactionVersion;
 
-        /** Method to call to use the feature. */
-        readonly signTransaction: BitcoinSignTransactionMethod;
-    };
+    /** Method to call to use the feature. */
+    readonly signTransaction: BitcoinSignTransactionMethod;
+  };
 };
 
 /**
@@ -34,7 +34,7 @@ export type BitcoinSignTransactionVersion = '1.0.0';
  * @group SignTransaction
  */
 export type BitcoinSignTransactionMethod = (
-    ...inputs: readonly BitcoinSignTransactionInput[]
+  ...inputs: readonly BitcoinSignTransactionInput[]
 ) => Promise<readonly BitcoinSignTransactionOutput[]>;
 
 /**
@@ -43,14 +43,14 @@ export type BitcoinSignTransactionMethod = (
  * @group SignTransaction
  */
 export interface BitcoinSignTransactionInput {
-    /** Partially Signed Bitcoin Transaction (PSBT), as raw bytes. */
-    readonly psbt: Uint8Array;
+  /** Partially Signed Bitcoin Transaction (PSBT), as raw bytes. */
+  readonly psbt: Uint8Array;
 
-    /** Transaction inputs to sign. */
-    readonly inputsToSign: InputToSign[];
+  /** Transaction inputs to sign. */
+  readonly inputsToSign: InputToSign[];
 
-    /** Chain to use. */
-    readonly chain?: IdentifierString;
+  /** Chain to use. */
+  readonly chain?: IdentifierString;
 }
 
 /**
@@ -59,14 +59,14 @@ export interface BitcoinSignTransactionInput {
  * @group SignTransaction
  * */
 export interface InputToSign {
-    /** Account to use. */
-    readonly account: WalletAccount;
+  /** Account to use. */
+  readonly account: WalletAccount;
 
-    /** List of input indexes that should be signed by the account. */
-    readonly signingIndexes: number[];
+  /** List of input indexes that should be signed by the account. */
+  readonly signingIndexes: number[];
 
-    /** A SIGHASH flag. */
-    readonly sigHash?: BitcoinSigHashFlag;
+  /** A SIGHASH flag. */
+  readonly sigHash?: BitcoinSigHashFlag;
 }
 
 /**
@@ -75,15 +75,15 @@ export interface InputToSign {
  * @group SignTransaction
  */
 export interface BitcoinSignTransactionOutput {
-    /** Signed Partially Signed Bitcoin Transaction (PSBT), as raw bytes. */
-    readonly signedPsbt: Uint8Array;
+  /** Signed Partially Signed Bitcoin Transaction (PSBT), as raw bytes. */
+  readonly signedPsbt: Uint8Array;
 }
 
 /** SIGHASH flag. */
 export type BitcoinSigHashFlag =
-    | 'ALL'
-    | 'NONE'
-    | 'SINGLE'
-    | 'ALL|ANYONECANPAY'
-    | 'NONE|ANYONECANPAY'
-    | 'SINGLE|ANYONECANPAY';
+  | 'ALL'
+  | 'NONE'
+  | 'SINGLE'
+  | 'ALL|ANYONECANPAY'
+  | 'NONE|ANYONECANPAY'
+  | 'SINGLE|ANYONECANPAY';
