@@ -1,4 +1,3 @@
-import { SOLANA_MAINNET_CHAIN } from '@solana/wallet-standard-chains';
 import bs58 from 'bs58';
 import { vi } from 'vitest';
 import { CaipScope } from '../src/types/common';
@@ -8,7 +7,6 @@ export const mockAddress2 = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';
 export const mockPublicKey = bs58.decode(mockAddress);
 export const mockPublicKey2 = bs58.decode(mockAddress2);
 export const mockScope = CaipScope.MAINNET;
-export const mockChain = SOLANA_MAINNET_CHAIN;
 
 // Create mock for MultichainApiClient
 export const createMockClient = () => {
