@@ -280,6 +280,12 @@ export class BitcoinWallet implements Wallet {
   }
 
   async #signTransactionInternal(psbtBase64: string, broadcast = false): Promise<SignTransactionResponse> {
+    const selectedAccount = this.#account;
+
+    if (!selectedAccount) {
+      throw new Error('No connected account');
+    }
+
     if (!this.scope) {
       throw new Error('Scope not found.');
     }
