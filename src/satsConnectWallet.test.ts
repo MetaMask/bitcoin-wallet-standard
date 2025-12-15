@@ -1,14 +1,6 @@
 import type { SessionData } from '@metamask/multichain-api-client';
-import { SOLANA_MAINNET_CHAIN } from '@solana/wallet-standard-chains';
-import {
-  SolanaSignAndSendTransaction,
-  SolanaSignIn,
-  SolanaSignMessage,
-  SolanaSignTransaction,
-} from '@solana/wallet-standard-features';
 import type { WalletAccount } from '@wallet-standard/base';
-import { StandardConnect, StandardDisconnect, StandardEvents } from '@wallet-standard/features';
-import bs58 from 'bs58';
+import { StandardEvents } from '@wallet-standard/features';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockAddress as address,
@@ -20,11 +12,20 @@ import {
   mockPublicKey as publicKey,
   mockScope as scope,
 } from '../tests/mocks';
-import { MetamaskWalletAccount, SatsConnectWallet } from './satsConnectWallet';
+import {
+  BitcoinConnect,
+  BitcoinDisconnect,
+  BitcoinSignAndSendTransaction,
+  BitcoinSignMessage,
+  BitcoinSignTransaction,
+} from './features';
+import { BitcoinWallet, WalletStandardWalletAccount } from './satsConnectWallet';
 import { CaipScope } from './types/common';
+import { Chain } from './types/common';
+import { AddressPurpose, SatsConnectFeatureName } from './types/satsConnect';
 
 describe('MetamaskWallet', () => {
-  let wallet: SatsConnectWallet;
+  let wallet: BitcoinWallet;
   let mockClient: ReturnType<typeof createMockClient>;
   let notificationHandler: ReturnType<typeof vi.fn>;
 
@@ -51,7 +52,7 @@ describe('MetamaskWallet', () => {
     mockCreateSession(mockClient, [_address]);
     setupNotificationHandler();
 
-    const connectPromise = wallet.features[StandardConnect].connect();
+    const connectPromise = wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
 
     // Emit account change event
     emitAccountChange(_address);
@@ -64,7 +65,7 @@ describe('MetamaskWallet', () => {
     mockGetSession(mockClient, [_address]);
     setupNotificationHandler();
 
-    const connectPromise = wallet.features[StandardConnect].connect();
+    const connectPromise = wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
 
     // Emit account change event
     emitAccountChange(_address);
@@ -75,9 +76,10 @@ describe('MetamaskWallet', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockClient = createMockClient();
-    wallet = new SatsConnectWallet({ client: mockClient, walletName: 'MetaMask Test' });
+    wallet = new BitcoinWallet({ client: mockClient, walletName: 'MetaMask Test' });
+
     // Mock #getInitialSelectedAddress private method to resolve immediately with undefined
-    vi.spyOn(SatsConnectWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(undefined);
+    vi.spyOn(BitcoinWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(undefined);
   });
 
   describe('constructor', () => {
@@ -85,24 +87,23 @@ describe('MetamaskWallet', () => {
       expect(wallet.version).toBe('1.0.0');
       expect(wallet.name).toBe('MetaMask Test');
       expect(wallet.icon).toBeDefined();
-      expect(wallet.chains).toContain(SOLANA_MAINNET_CHAIN);
+      expect(wallet.chains).toEqual([Chain.MAINNET, Chain.TESTNET, Chain.REGTEST]);
       expect(wallet.accounts).toEqual([]);
     });
 
     it('should initialize with default properties', () => {
-      wallet = new SatsConnectWallet({ client: mockClient });
+      wallet = new BitcoinWallet({ client: mockClient });
       expect(wallet.name).toBe('MetaMask');
     });
 
     it('should have all required features', () => {
       const features = wallet.features;
-      expect(features[StandardConnect]).toBeDefined();
-      expect(features[StandardDisconnect]).toBeDefined();
-      expect(features[StandardEvents]).toBeDefined();
-      expect(features[SolanaSignAndSendTransaction]).toBeDefined();
-      expect(features[SolanaSignTransaction]).toBeDefined();
-      expect(features[SolanaSignMessage]).toBeDefined();
-      expect(features[SolanaSignIn]).toBeDefined();
+      expect(features[BitcoinConnect]).toBeDefined();
+      expect(features[BitcoinDisconnect]).toBeDefined();
+      expect(features[SatsConnectFeatureName]).toBeDefined();
+      expect(features[BitcoinSignTransaction]).toBeDefined();
+      expect(features[BitcoinSignAndSendTransaction]).toBeDefined();
+      expect(features[BitcoinSignMessage]).toBeDefined();
     });
   });
 
@@ -128,7 +129,7 @@ describe('MetamaskWallet', () => {
           },
         },
         sessionProperties: {
-          solana_accountChanged_notifications: true,
+          bitcoin_accountChanged_notifications: true,
         },
       });
       expect(result.accounts.length).toBe(1);
@@ -140,7 +141,7 @@ describe('MetamaskWallet', () => {
 
       // Simulate no accountsChanged event (timeout will trigger)
       vi.useFakeTimers();
-      const connectPromise = wallet.features[StandardConnect].connect();
+      const connectPromise = wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
 
       // Fast-forward timer
       await vi.runAllTimersAsync();
@@ -155,7 +156,8 @@ describe('MetamaskWallet', () => {
     });
   });
 
-  describe('events', () => {
+  // TODO: Enable this when accountsChanged event is implemented
+  describe.skip('events', () => {
     it('should register and trigger event listeners', async () => {
       const changeListener = vi.fn();
 
@@ -173,16 +175,13 @@ describe('MetamaskWallet', () => {
 
       expect(wallet.accounts.length).toBe(1);
 
-      // Setup change event listener
-      const changeListener = vi.fn();
-      wallet.features[StandardEvents].on('change', changeListener);
-
-      await wallet.features[StandardDisconnect].disconnect();
+      await wallet.features[BitcoinDisconnect].disconnect();
 
       // Verify account is cleared
       expect(wallet.accounts).toEqual([]);
       expect(mockClient.revokeSession).toHaveBeenCalled();
-      expect(changeListener).toHaveBeenCalledWith({ accounts: [] });
+      // TODO enable this when accountsChanged event is implemented
+      // expect(changeListener).toHaveBeenCalledWith({ accounts: [] });
     });
   });
 
@@ -190,12 +189,56 @@ describe('MetamaskWallet', () => {
     it('should sign and send transaction', async () => {
       await reconnectAndSetAccount();
 
-      const testSignature = 'testSignature';
+      const psbt = new Uint8Array([1, 2, 3, 4]);
+      const txId = 'testTxId';
+      const account = wallet.accounts[0];
+
       mockClient.invokeMethod.mockResolvedValue({
-        signature: testSignature,
+        psbt,
+        txid: txId,
       });
 
-      const transaction = new Uint8Array([1, 2, 3, 4]);
+      // Ensure account is defined
+      if (!account) {
+        throw new Error('Test setup failed: account should be defined');
+      }
+
+      const results = await wallet.features[BitcoinSignAndSendTransaction].signAndSendTransaction({
+        psbt,
+        inputsToSign: [
+          {
+            account,
+            signingIndexes: [0],
+          },
+        ],
+        chain,
+      });
+
+      expect(mockClient.invokeMethod).toHaveBeenCalledWith({
+        scope,
+        request: {
+          method: 'signPsbt',
+          params: {
+            psbt: Buffer.from(psbt).toString('base64'),
+            options: { fill: true, broadcast: true },
+            account: { address: account.address },
+          },
+        },
+      });
+
+      expect(results).toEqual([
+        {
+          txId,
+        },
+      ]);
+    });
+
+    it('should throw error if no account', async () => {
+      // Disconnect to clear account
+      await reconnectAndSetAccount();
+
+      const psbt = new Uint8Array([1, 2, 3, 4]);
+      const txId = 'testTxId';
       const account = wallet.accounts[0];
 
       // Ensure account is defined
@@ -203,49 +246,25 @@ describe('MetamaskWallet', () => {
         throw new Error('Test setup failed: account should be defined');
       }
 
-      const results = await wallet.features[SolanaSignAndSendTransaction].signAndSendTransaction({
-        transaction,
-        account,
-        chain,
-      });
+      await wallet.features[BitcoinDisconnect].disconnect();
 
-      expect(mockClient.invokeMethod).toHaveBeenCalledWith({
-        scope,
-        request: {
-          method: 'signAndSendTransaction',
-          params: {
-            account: { address: account.address },
-            transaction: Buffer.from(transaction).toString('base64'),
-            scope,
-          },
-        },
-      });
-
-      expect(results).toEqual([
-        {
-          signature: bs58.decode(testSignature),
-        },
-      ]);
-    });
-
-    it('should throw error if no account', async () => {
-      // Disconnect to clear account
-      await wallet.features[StandardDisconnect].disconnect();
-
-      const transaction = new Uint8Array([1, 2, 3, 4]);
-      const account = new MetamaskWalletAccount({
-        address,
-        publicKey,
-        chains: wallet.chains,
+      mockClient.invokeMethod.mockResolvedValue({
+        psbt,
+        txid: txId,
       });
 
       await expect(
-        wallet.features[SolanaSignAndSendTransaction].signAndSendTransaction({
-          transaction,
-          account,
+        wallet.features[BitcoinSignAndSendTransaction].signAndSendTransaction({
+          psbt,
+          inputsToSign: [
+            {
+              account,
+              signingIndexes: [0],
+            },
+          ],
           chain,
         }),
-      ).rejects.toThrow('Not connected');
+      ).rejects.toThrow('No connected account');
     });
   });
 
@@ -253,40 +272,46 @@ describe('MetamaskWallet', () => {
     it('should sign transaction', async () => {
       await connectAndSetAccount();
 
-      const signedTransaction = 'base64EncodedSignedTransaction';
-      mockClient.invokeMethod.mockResolvedValue({
-        signedTransaction,
-      });
-
-      const transaction = new Uint8Array([1, 2, 3, 4]);
+      const psbt = new Uint8Array([1, 2, 3, 4]);
       const account = wallet.accounts[0];
+      const signedPsbt = 'base64EncodedSignedMessage';
 
       // Ensure account is defined
       if (!account) {
         throw new Error('Test setup failed: account should be defined');
       }
 
-      const results = await wallet.features[SolanaSignTransaction].signTransaction({
-        transaction,
-        account,
+      mockClient.invokeMethod.mockResolvedValue({
+        psbt: signedPsbt,
+        txid: undefined,
+      });
+
+      const results = await wallet.features[BitcoinSignTransaction].signTransaction({
+        psbt,
+        inputsToSign: [
+          {
+            account,
+            signingIndexes: [0],
+          },
+        ],
         chain,
       });
 
       expect(mockClient.invokeMethod).toHaveBeenCalledWith({
         scope,
         request: {
-          method: 'signTransaction',
+          method: 'signPsbt',
           params: {
+            psbt: Buffer.from(psbt).toString('base64'),
+            options: { fill: true, broadcast: false },
             account: { address: account.address },
-            transaction: Buffer.from(transaction).toString('base64'),
-            scope,
           },
         },
       });
 
       expect(results).toEqual([
         {
-          signedTransaction: Uint8Array.from(Buffer.from(signedTransaction, 'base64')),
+          signedPsbt: Buffer.from(signedPsbt, 'base64'),
         },
       ]);
     });
@@ -295,20 +320,17 @@ describe('MetamaskWallet', () => {
   describe('signMessage', () => {
     it('should sign message', async () => {
       await connectAndSetAccount();
-      const signedMessage = 'base64EncodedSignedMessage';
       const signature = 'signature';
-      const signatureType = 'ed25519';
 
       mockClient.invokeMethod.mockResolvedValue({
-        signedMessage,
         signature,
-        signatureType,
       });
 
-      const message = new Uint8Array([1, 2, 3, 4]);
+      const messageToSign = 'test message';
+      const message = new TextEncoder().encode(messageToSign);
       const account = wallet.accounts[0] as WalletAccount;
 
-      const results = await wallet.features[SolanaSignMessage].signMessage({
+      const results = await wallet.features[BitcoinSignMessage].signMessage({
         message,
         account,
       });
@@ -318,7 +340,7 @@ describe('MetamaskWallet', () => {
         request: {
           method: 'signMessage',
           params: {
-            message: Buffer.from(message).toString('base64'),
+            message: messageToSign,
             account: { address: account.address },
           },
         },
@@ -326,141 +348,16 @@ describe('MetamaskWallet', () => {
 
       expect(results).toEqual([
         {
-          signedMessage: Buffer.from(signedMessage, 'base64'),
-          signature: bs58.decode(signature),
-          signatureType: 'ed25519',
+          signature: Buffer.from(signature, 'base64'),
+          signedMessage: Buffer.from(signature, 'base64'),
         },
       ]);
     });
   });
 
-  describe('signIn', () => {
-    it('should connect first if no account is set', async () => {
-      // Setup mock session
-      mockCreateSession(mockClient, [address]);
-
-      // Setup signIn response
-      const signedMessage = 'base64EncodedSignedMessage';
-      const signature = 'signature';
-      mockClient.invokeMethod.mockResolvedValue({
-        signedMessage,
-        signature,
-      });
-
-      setupNotificationHandler();
-
-      // Start signIn before connecting
-      const signInPromise = wallet.features[SolanaSignIn].signIn({
-        domain: 'test.com',
-        statement: 'Sign in to test app',
-      });
-
-      // Simulate accountsChanged event to complete connection
-      emitAccountChange(address);
-
-      const results = await signInPromise;
-
-      // Verify signIn was called
-      expect(mockClient.invokeMethod).toHaveBeenCalledWith({
-        scope,
-        request: {
-          method: 'signIn',
-          params: {
-            domain: 'test.com',
-            statement: 'Sign in to test app',
-            address,
-          },
-        },
-      });
-
-      expect(results).toEqual([
-        {
-          account: wallet.accounts[0],
-          signedMessage: Buffer.from(signedMessage, 'base64'),
-          signature: bs58.decode(signature),
-        },
-      ]);
-    });
-
-    it('should sign in with existing account', async () => {
-      await connectAndSetAccount();
-
-      const signedMessage = 'base64EncodedSignedMessage';
-      const signature = 'signature';
-      mockClient.invokeMethod.mockResolvedValue({
-        signedMessage,
-        signature,
-      });
-
-      const domain = 'test.com';
-      const statement = 'Sign in to test app';
-
-      const results = await wallet.features[SolanaSignIn].signIn({
-        domain,
-        statement,
-      });
-
-      expect(mockClient.invokeMethod).toHaveBeenCalledWith({
-        scope,
-        request: {
-          method: 'signIn',
-          params: {
-            domain,
-            statement,
-            address,
-          },
-        },
-      });
-
-      expect(results).toEqual([
-        {
-          account: wallet.accounts[0],
-          signedMessage: Buffer.from(signedMessage, 'base64'),
-          signature: bs58.decode(signature),
-        },
-      ]);
-    });
-
-    it('should use window.location.host as default domain', async () => {
-      await connectAndSetAccount();
-
-      // Mock window.location.host
-      const originalLocation = window.location;
-      window.location = { ...originalLocation, host: 'example.com' };
-
-      const signedMessage = 'base64EncodedSignedMessage';
-      const signature = 'signature';
-      mockClient.invokeMethod.mockResolvedValue({
-        signedMessage,
-        signature,
-      });
-
-      const statement = 'Sign in to test app';
-
-      await wallet.features[SolanaSignIn].signIn({
-        statement,
-      });
-
-      expect(mockClient.invokeMethod).toHaveBeenCalledWith({
-        scope,
-        request: {
-          method: 'signIn',
-          params: {
-            domain: 'example.com',
-            statement,
-            address,
-          },
-        },
-      });
-
-      // Restore window.location
-      window.location = originalLocation;
-    });
-  });
-
-  describe('MetamaskWalletAccount', () => {
+  describe('WalletStandardWalletAccount', () => {
     it('should create account with correct properties', () => {
-      const account = new MetamaskWalletAccount({
+      const account = new WalletStandardWalletAccount({
         address,
         publicKey,
         chains: wallet.chains,
@@ -469,13 +366,19 @@ describe('MetamaskWallet', () => {
       expect(account.address).toBe(address);
       expect(account.publicKey).toEqual(publicKey);
       expect(account.chains).toEqual(wallet.chains);
-      expect(account.features).toEqual(
-        expect.arrayContaining([SolanaSignAndSendTransaction, SolanaSignTransaction, SolanaSignMessage, SolanaSignIn]),
-      );
+      expect(account.features).toEqual([
+        SatsConnectFeatureName,
+        BitcoinConnect,
+        BitcoinDisconnect,
+        BitcoinSignTransaction,
+        BitcoinSignAndSendTransaction,
+        BitcoinSignMessage,
+      ]);
     });
   });
 
-  describe('handleAccountsChangedEvent', () => {
+  // TODO: Enable this when accountsChanged event is implemented
+  describe.skip('handleAccountsChangedEvent', () => {
     it('should disconnect without revoking session when no address is provided', async () => {
       await connectAndSetAccount();
 
@@ -501,15 +404,17 @@ describe('MetamaskWallet', () => {
 
     it('should use address from getInitialSelectedAddress', async () => {
       // Mocks
-      vi.spyOn(SatsConnectWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(address2);
+      vi.spyOn(BitcoinWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(address2);
       mockCreateSession(mockClient, [address, address2]);
       mockGetSession(mockClient, [address, address2]);
 
       // Create new wallet with mocked getInitialSelectedAddress
-      const walletWithInitialAddress = new SatsConnectWallet({ client: mockClient });
+      const walletWithInitialAddress = new BitcoinWallet({ client: mockClient });
 
       // Connect and verify the address from getInitialSelectedAddress was used
-      const result = await walletWithInitialAddress.features[StandardConnect].connect();
+      const result = await walletWithInitialAddress.features[BitcoinConnect].connect({
+        purposes: [AddressPurpose.Payment],
+      });
       expect(result.accounts[0]?.address).toBe(address2);
     });
   });
@@ -525,8 +430,8 @@ describe('MetamaskWallet', () => {
             methods: [],
             notifications: [],
           },
-          [CaipScope.DEVNET]: {
-            accounts: [`${CaipScope.DEVNET}:${address}`],
+          [CaipScope.TESTNET]: {
+            accounts: [`${CaipScope.TESTNET}:${address}`],
             methods: [],
             notifications: [],
           },
@@ -592,7 +497,8 @@ describe('MetamaskWallet', () => {
       expect((wallet as any).scope).toBeUndefined();
     });
 
-    it('should emit a "change" event when the account is updated', () => {
+    // TODO: Enable this when accountsChanged event is implemented
+    it.skip('should emit a "change" event when the account is updated', () => {
       const changeListener = vi.fn();
       wallet.features[StandardEvents].on('change', changeListener);
 
