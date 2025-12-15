@@ -303,13 +303,7 @@ export class BitcoinWallet implements Wallet {
   }
 
   #disconnect = async (): Promise<void> => {
-    const selectedAccount = this.#account;
-
-    if (!selectedAccount) {
-      throw new Error('No connected account');
-    }
-
-    await this.client.revokeSession({ scopes: [this.scope ?? CaipScope.MAINNET] });
+    await this.client.revokeSession({ scopes: [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST] });
 
     this.#account = undefined;
     this.scope = undefined;
