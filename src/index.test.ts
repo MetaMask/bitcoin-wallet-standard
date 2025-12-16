@@ -1,6 +1,5 @@
-import { beforeEach } from 'node:test';
 import { registerWallet } from '@wallet-standard/wallet';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockClient } from '../tests/mocks';
 import { getBitcoinWalletStandard, registerBitcoinWalletStandard } from './index';
 import { BitcoinWallet } from './satsConnectWallet';
@@ -11,6 +10,10 @@ vi.mock('@wallet-standard/wallet', () => ({
 
 vi.mock('./wallet', () => ({
   MetamaskWallet: vi.fn(),
+}));
+
+vi.mock('./satsConnectWallet', () => ({
+  BitcoinWallet: vi.fn(),
 }));
 
 describe('index.ts', () => {
