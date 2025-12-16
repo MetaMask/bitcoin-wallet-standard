@@ -4,8 +4,7 @@ import { createMockClient } from '../tests/mocks';
 import { getBitcoinWalletStandard, registerBitcoinWalletStandard } from './index';
 import { BitcoinWallet } from './satsConnectWallet';
 
-vi.mock(import('@wallet-standard/wallet'), async (importOriginal) => ({
-  ...(await importOriginal()),
+vi.mock('@wallet-standard/wallet', () => ({
   registerWallet: vi.fn(),
 }));
 
