@@ -15,14 +15,14 @@ export const BitcoinSignMessage = 'bitcoin:signMessage';
  * @group SignMessage
  */
 export type BitcoinSignMessageFeature = {
-    /** Name of the feature. */
-    readonly [BitcoinSignMessage]: {
-        /** Version of the feature implemented by the Wallet. */
-        readonly version: BitcoinSignMessageVersion;
+  /** Name of the feature. */
+  readonly [BitcoinSignMessage]: {
+    /** Version of the feature implemented by the Wallet. */
+    readonly version: BitcoinSignMessageVersion;
 
-        /** Method to call to use the feature. */
-        readonly signMessage: BitcoinSignMessageMethod;
-    };
+    /** Method to call to use the feature. */
+    readonly signMessage: BitcoinSignMessageMethod;
+  };
 };
 
 /**
@@ -38,7 +38,7 @@ export type BitcoinSignMessageVersion = '1.0.0';
  * @group SignMessage
  */
 export type BitcoinSignMessageMethod = (
-    ...inputs: readonly BitcoinSignMessageInput[]
+  ...inputs: readonly BitcoinSignMessageInput[]
 ) => Promise<readonly BitcoinSignMessageOutput[]>;
 
 /**
@@ -47,11 +47,11 @@ export type BitcoinSignMessageMethod = (
  * @group SignMessage
  */
 export interface BitcoinSignMessageInput {
-    /** Account to use. */
-    readonly account: WalletAccount;
+  /** Account to use. */
+  readonly account: WalletAccount;
 
-    /** Message to sign, as raw bytes. */
-    readonly message: Uint8Array;
+  /** Message to sign, as raw bytes. */
+  readonly message: Uint8Array;
 }
 
 /**
@@ -60,12 +60,12 @@ export interface BitcoinSignMessageInput {
  * @group SignMessage
  */
 export interface BitcoinSignMessageOutput {
-    /**
-     * Message bytes that were signed.
-     * The wallet may prefix or otherwise modify the message before signing it.
-     */
-    readonly signedMessage: Uint8Array;
+  /**
+   * Message bytes that were signed.
+   * The wallet may prefix or otherwise modify the message before signing it.
+   */
+  readonly signedMessage: Uint8Array;
 
-    /** Message signature produced. */
-    readonly signature: Uint8Array;
+  /** Message signature produced. */
+  readonly signature: Uint8Array;
 }
