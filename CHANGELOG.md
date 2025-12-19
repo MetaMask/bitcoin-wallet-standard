@@ -71,6 +71,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0]
 
+### Uncategorized
+
+- chore: reset version ([#11](https://github.com/MetaMask/bitcoin-wallet-standard/pull/11))
+- Develop ([#10](https://github.com/MetaMask/bitcoin-wallet-standard/pull/10))
+- fix: update comments and logging for Bitcoin scope in satsConnectWallet
+- fix: signMessage uses correct message payload
+- fix: update sessionProperties to use bitcoin_accountChanged_notifications
+- lint: lint satsConnectWallet
+- feat: add Bitcoin WS signing features including signTransaction, signAndSendTransaction, and signMessage
+- feat: implement draft signTransaction, signMessage and sendBtcTransaction
+- fix: remove bs58 address decoding
+- remove sats connect folder
+- Initial commit
+
 ### Changed
 
 - Initial release
