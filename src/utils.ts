@@ -28,7 +28,16 @@ export function getAddressFromCaipAccountId(caipAccountId: CaipAccountId) {
  * @returns True if the event is an account changed event, false otherwise.
  */
 export function isAccountChangedEvent(event: any) {
-  return event.params?.notification?.method === 'metamask_accountsChanged';
+  return event?.method === 'wallet_notify' && event?.params?.notification?.method === 'metamask_accountsChanged';
+}
+
+/**
+ * Checks if the given event is a session changed event.
+ * @param event - The event to check.
+ * @returns True if the event is a session changed event, false otherwise.
+ */
+export function isSessionChangedEvent(event: any): boolean {
+  return event?.method === 'wallet_sessionChanged';
 }
 
 /**
