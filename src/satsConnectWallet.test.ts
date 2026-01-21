@@ -1,6 +1,5 @@
 import type { SessionData } from '@metamask/multichain-api-client';
 import type { WalletAccount } from '@wallet-standard/base';
-import { StandardEvents } from '@wallet-standard/features';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockAddress as address,
@@ -18,6 +17,7 @@ import {
   BitcoinSignAndSendTransaction,
   BitcoinSignMessage,
   BitcoinSignTransaction,
+  BitcoinEvents,
 } from './features';
 import { BitcoinWallet, WalletStandardWalletAccount } from './satsConnectWallet';
 import { CaipScope } from './types/common';
@@ -161,7 +161,7 @@ describe('MetamaskWallet', () => {
     it('should register and trigger event listeners', async () => {
       const changeListener = vi.fn();
 
-      wallet.features[StandardEvents].on('change', changeListener);
+      wallet.features[BitcoinEvents].on('change', changeListener);
 
       await reconnectAndSetAccount();
 
@@ -384,7 +384,7 @@ describe('MetamaskWallet', () => {
 
       // Setup account change listener
       const changeListener = vi.fn();
-      wallet.features[StandardEvents].on('change', changeListener);
+      wallet.features[BitcoinEvents].on('change', changeListener);
 
       // Simulate accountsChanged event with no address
       await notificationHandler({
@@ -500,7 +500,7 @@ describe('MetamaskWallet', () => {
     // TODO: Enable this when accountsChanged event is implemented
     it.skip('should emit a "change" event when the account is updated', () => {
       const changeListener = vi.fn();
-      wallet.features[StandardEvents].on('change', changeListener);
+      wallet.features[BitcoinEvents].on('change', changeListener);
 
       (wallet as any).updateSession(session, address);
 
