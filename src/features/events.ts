@@ -10,7 +10,7 @@ export const BitcoinEvents = 'bitcoin:events';
  *
  * @group Events
  */
-export type StandardEventsFeature = {
+export type BitcoinEventsFeature = {
   /** Name of the feature. */
   readonly [BitcoinEvents]: {
     /** Version of the feature implemented by the {@link "@wallet-standard/base".Wallet}. */
@@ -21,14 +21,14 @@ export type StandardEventsFeature = {
 };
 
 /**
- * Version of the {@link StandardEventsFeature} implemented by a {@link "@wallet-standard/base".Wallet}.
+ * Version of the {@link BitcoinEventsFeature} implemented by a {@link "@wallet-standard/base".Wallet}.
  *
  * @group Events
  */
 export type BitcoinEventsVersion = '1.0.0';
 
 /**
- * Method to call to use the {@link StandardEventsFeature}.
+ * Method to call to use the {@link BitcoinEventsFeature}.
  *
  * @param event    Event type to listen for. {@link BitcoinEventsListeners.change | `change`} is the only event type.
  * @param listener Function that will be called when an event of the type is emitted.
@@ -46,7 +46,7 @@ export type BitcoinEventsOnMethod = <E extends BitcoinEventsNames>(
 ) => () => void;
 
 /**
- * Types of event listeners of the {@link StandardEventsFeature}.
+ * Types of event listeners of the {@link BitcoinEventsFeature}.
  *
  * @group Events
  */

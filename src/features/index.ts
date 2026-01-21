@@ -2,7 +2,7 @@ import type { WalletWithFeatures } from '@wallet-standard/base';
 
 import type { BitcoinConnectFeature } from './connect';
 import type { BitcoinDisconnectFeature } from './disconnect';
-import type { StandardEventsFeature } from './events';
+import type { BitcoinEventsFeature } from './events';
 import type { BitcoinSatsConnectFeature } from './satsConnect';
 import type { BitcoinSignAndSendTransactionFeature } from './signAndSendTransaction';
 import type { BitcoinSignMessageFeature } from './signMessage';
@@ -14,7 +14,7 @@ export type BitcoinStandardFeatures = BitcoinConnectFeature &
   BitcoinSignTransactionFeature &
   BitcoinSignAndSendTransactionFeature &
   BitcoinSignMessageFeature &
-  StandardEventsFeature;
+  BitcoinEventsFeature;
 
 /** Wallet with Bitcoin standard features. */
 export type WalletWithBitcoinStandardFeatures = WalletWithFeatures<BitcoinStandardFeatures>;
