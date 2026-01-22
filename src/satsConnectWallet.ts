@@ -45,6 +45,7 @@ import {
   type SignTransactionOptions,
   type SignTransactionResponse,
   WalletType,
+  type Address
 } from './types/satsConnect';
 import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEvent } from './utils';
 
@@ -222,7 +223,7 @@ export class BitcoinWallet implements Wallet {
    */
   protected updateSession(session: SessionData | undefined, selectedAddress: string | undefined) {
     // Get session scopes
-    const sessionScopes = new Set(Object.keys(session?.sessionScopes ?? {}));
+    const sessionScopes = new Set(session ? this.#getScopesFromSession(session) : []);
 
     // Find the first available scope in priority order: mainnet > testnet > regtest.
     const scopePriorityOrder = [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST];
@@ -461,13 +462,7 @@ export class BitcoinWallet implements Wallet {
         }
 
         return {
-          addresses: this.accounts.map(({ publicKey, address }) => ({
-            address,
-            publicKey: Buffer.from(publicKey).toString('hex'),
-            purpose: AddressPurpose.Payment,
-            addressType: AddressType.p2wpkh,
-            walletType: WalletType.SOFTWARE,
-          })),
+          addresses: this.accounts.map(this.#standardAccountToSatsAccount),
         };
       },
 
@@ -555,23 +550,21 @@ export class BitcoinWallet implements Wallet {
         }
 
         const listeners = this.#satsListeners[info.eventName];
+        const eventName = info.eventName;
+        const callback = info.cb;
 
         (listeners as typeof listeners & Extract<ListenerInfo, { eventName: typeof info.eventName }>['cb'][]).push(
-          info.cb,
+          callback,
         );
 
-        const idx = (this.#satsListeners[info.eventName]?.length || 0) - 1;
-
         return () => {
-          if (!this.#satsListeners[info.eventName]) {
+          if (!this.#satsListeners[eventName]) {
             return;
           }
 
-          if (idx !== undefined) {
-            this.#satsListeners[info.eventName]?.splice(idx, 1);
-          }
-
-          console.log(this.#satsListeners)
+          this.#satsListeners[eventName] = this.#satsListeners[eventName]?.filter(
+            (listener) => listener !== callback,
+          ) as any;
         };
       },
 
@@ -585,18 +578,22 @@ export class BitcoinWallet implements Wallet {
     return Object.keys(session?.sessionScopes ?? {});
   }
 
+  #standardAccountToSatsAccount(account: WalletStandardWalletAccount): Address {
+    return {
+      address: account.address,
+      publicKey: Buffer.from(account.publicKey).toString('hex'),
+      purpose: AddressPurpose.Payment,
+      addressType: AddressType.p2wpkh,
+      walletType: WalletType.SOFTWARE,
+    };
+  }
+
   #emitSatsConnectAccountChange(event: 'accountChange', account: WalletStandardWalletAccount): void {
-    for (const listener of this.#satsListeners[event] || []) {
+    for (const listener of (this.#satsListeners[event] || [])) {
       listener({
         type: event,
         addresses: [
-          {
-            address: account.address,
-            publicKey: Buffer.from(account.publicKey).toString('hex'),
-            purpose: AddressPurpose.Payment,
-            addressType: AddressType.p2wpkh,
-            walletType: WalletType.SOFTWARE,
-          },
+          this.#standardAccountToSatsAccount(account),
         ],
       });
     }
