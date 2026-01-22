@@ -156,8 +156,7 @@ describe('MetamaskWallet', () => {
     });
   });
 
-  // TODO: Enable this when accountsChanged event is implemented
-  describe.skip('events', () => {
+  describe('events', () => {
     it('should register and trigger event listeners', async () => {
       const changeListener = vi.fn();
 
@@ -377,29 +376,26 @@ describe('MetamaskWallet', () => {
     });
   });
 
-  // TODO: Enable this when accountsChanged event is implemented
-  describe.skip('handleAccountsChangedEvent', () => {
-    it('should disconnect without revoking session when no address is provided', async () => {
-      await connectAndSetAccount();
-
-      // Setup account change listener
+  describe('handleAccountsChangedEvent', () => {
+    it('should call the change handler with new acdounts when usign bitcoin standard connection', async () => {
       const changeListener = vi.fn();
       wallet.features[BitcoinEvents].on('change', changeListener);
 
+      await connectAndSetAccount();
+      mockGetSession(mockClient, [address, address2]);
+
       // Simulate accountsChanged event with no address
       await notificationHandler({
+        method: 'wallet_notify',
         params: {
           notification: {
             method: 'metamask_accountsChanged',
-            params: [],
+            params: [address2],
           },
         },
       });
 
-      // Verify account was removed and disconnect was called
-      expect(wallet.accounts).toEqual([]);
-      expect(mockClient.revokeSession).not.toHaveBeenCalled();
-      expect(changeListener).toHaveBeenCalledWith({ accounts: [] });
+      expect(changeListener).toHaveBeenCalledWith({ accounts: wallet.accounts });
     });
 
     it('should use address from getInitialSelectedAddress', async () => {
@@ -497,8 +493,7 @@ describe('MetamaskWallet', () => {
       expect((wallet as any).scope).toBeUndefined();
     });
 
-    // TODO: Enable this when accountsChanged event is implemented
-    it.skip('should emit a "change" event when the account is updated', () => {
+    it('should emit a "change" event when the account is updated', () => {
       const changeListener = vi.fn();
       wallet.features[BitcoinEvents].on('change', changeListener);
 
