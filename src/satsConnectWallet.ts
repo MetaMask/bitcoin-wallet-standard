@@ -560,16 +560,18 @@ export class BitcoinWallet implements Wallet {
           info.cb,
         );
 
+        const idx = (this.#satsListeners[info.eventName]?.length || 0) - 1;
+
         return () => {
-          const listeners = this.#satsListeners[info.eventName];
-          if (!listeners) {
+          if (!this.#satsListeners[info.eventName]) {
             return;
           }
 
-          const idx = listeners.indexOf(info.cb as any);
-          if (idx !== -1) {
-            listeners.splice(idx, 1);
+          if (idx !== undefined) {
+            this.#satsListeners[info.eventName]?.splice(idx, 1);
           }
+
+          console.log(this.#satsListeners)
         };
       },
 
