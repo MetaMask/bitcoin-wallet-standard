@@ -25,6 +25,7 @@ import {
 import { metamaskIcon } from './icon';
 import { type BitcoinWalletOptions, type CaipAccountId, CaipScope } from './types/common';
 import {
+  type Address,
   AddressPurpose,
   AddressType,
   type BitcoinProvider,
@@ -45,7 +46,6 @@ import {
   type SignTransactionOptions,
   type SignTransactionResponse,
   WalletType,
-  type Address
 } from './types/satsConnect';
 import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEvent } from './utils';
 
@@ -589,12 +589,10 @@ export class BitcoinWallet implements Wallet {
   }
 
   #emitSatsConnectAccountChange(event: 'accountChange', account: WalletStandardWalletAccount): void {
-    for (const listener of (this.#satsListeners[event] || [])) {
+    for (const listener of this.#satsListeners[event] || []) {
       listener({
         type: event,
-        addresses: [
-          this.#standardAccountToSatsAccount(account),
-        ],
+        addresses: [this.#standardAccountToSatsAccount(account)],
       });
     }
   }
