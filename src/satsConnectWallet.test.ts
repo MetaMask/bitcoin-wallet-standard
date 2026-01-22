@@ -377,7 +377,7 @@ describe('MetamaskWallet', () => {
   });
 
   describe('handleAccountsChangedEvent', () => {
-    it('should call the change handler with new acdounts when usign bitcoin standard connection', async () => {
+    it('should call the change handler with new accounts when using bitcoin standard connection', async () => {
       const changeListener = vi.fn();
       wallet.features[BitcoinEvents].on('change', changeListener);
 
