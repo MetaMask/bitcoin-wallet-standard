@@ -1,5 +1,7 @@
+import { KnownSessionProperties } from '@metamask/chain-agnostic-permission';
 import type { SessionData } from '@metamask/multichain-api-client';
 import type { WalletAccount } from '@wallet-standard/base';
+import { createUnsecuredToken } from 'jsontokens';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockAddress as address,
@@ -14,15 +16,15 @@ import {
 import {
   BitcoinConnect,
   BitcoinDisconnect,
+  BitcoinEvents,
   BitcoinSignAndSendTransaction,
   BitcoinSignMessage,
   BitcoinSignTransaction,
-  BitcoinEvents,
 } from './features';
 import { BitcoinWallet, WalletStandardWalletAccount } from './satsConnectWallet';
 import { CaipScope } from './types/common';
 import { Chain } from './types/common';
-import { AddressPurpose, SatsConnectFeatureName } from './types/satsConnect';
+import { AddressPurpose, AddressType, SatsConnectFeatureName, WalletType } from './types/satsConnect';
 
 describe('MetamaskWallet', () => {
   let wallet: BitcoinWallet;
@@ -32,6 +34,7 @@ describe('MetamaskWallet', () => {
   // Emit account change event
   const emitAccountChange = (address: string) => {
     notificationHandler({
+      method: 'wallet_notify',
       params: {
         notification: {
           method: 'metamask_accountsChanged',
@@ -44,7 +47,9 @@ describe('MetamaskWallet', () => {
   const setupNotificationHandler = () => {
     notificationHandler = vi.fn();
     mockClient.onNotification.mockImplementation((handler) => {
-      notificationHandler.mockImplementation(handler);
+      notificationHandler.mockImplementation((...params) => {
+        handler(...params);
+      });
     });
   };
 
@@ -71,6 +76,52 @@ describe('MetamaskWallet', () => {
     emitAccountChange(_address);
 
     return connectPromise;
+  };
+
+  const connectAndSetAccountWithSatsConnect = async (_address = address) => {
+    mockCreateSession(mockClient, [_address]);
+    setupNotificationHandler();
+
+    const connectResult = await wallet.features[SatsConnectFeatureName].provider.connect(
+      createUnsecuredToken({
+        purposes: [AddressPurpose.Payment],
+      }),
+    );
+
+    // Emit account change event
+    // emitAccountChange(_address);
+
+    return connectResult;
+  };
+
+  const reconnectAndSetAccountWithSatsConnect = async (_address = address) => {
+    mockGetSession(mockClient, [_address]);
+    setupNotificationHandler();
+
+    const connectResult = wallet.features[SatsConnectFeatureName].provider.connect(
+      createUnsecuredToken({
+        purposes: [AddressPurpose.Payment],
+      }),
+    );
+
+    // Emit account change event
+    // emitAccountChange(_address);
+
+    return connectResult;
+  };
+
+  const waitForAccountChange = async (expectedAccount: string, retries = 3, timeout = 500) => {
+    for (let i = 0; i < retries; i++) {
+      const account = wallet.accounts[0]?.address;
+
+      if (account === expectedAccount) {
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, timeout));
+    }
+
+    throw new Error('Account change not received');
   };
 
   beforeEach(() => {
@@ -129,7 +180,7 @@ describe('MetamaskWallet', () => {
           },
         },
         sessionProperties: {
-          bitcoin_accountChanged_notifications: true,
+          [KnownSessionProperties.Bip122AccountChangedNotifications]: true,
         },
       });
       expect(result.accounts.length).toBe(1);
@@ -500,6 +551,113 @@ describe('MetamaskWallet', () => {
       (wallet as any).updateSession(session, address);
 
       expect(changeListener).toHaveBeenCalledWith({ accounts: wallet.accounts });
+    });
+  });
+
+  describe('SatsConnect', () => {
+    describe('connect', () => {
+      it('should create session and return addresses', async () => {
+        const result = await connectAndSetAccountWithSatsConnect(address);
+
+        expect(result.addresses.length).toBe(1);
+        expect(result.addresses[0]?.address).toBe(address);
+        expect(result.addresses[0]?.publicKey).toBe(Buffer.from(address).toString('hex'));
+        expect(result.addresses[0]?.purpose).toBe(AddressPurpose.Payment);
+        expect(result.addresses[0]?.addressType).toBe(AddressType.p2wpkh);
+
+        expect(mockClient.createSession).toHaveBeenCalledWith({
+          optionalScopes: {
+            [scope]: {
+              methods: [],
+              notifications: [],
+            },
+          },
+          sessionProperties: {
+            [KnownSessionProperties.Bip122AccountChangedNotifications]: true,
+          },
+        });
+      });
+    });
+
+    describe('events', () => {
+      it('should correctly register and call accountChange listener', async () => {
+        const changeListener = vi.fn();
+
+        wallet.features[SatsConnectFeatureName].provider.addListener({
+          eventName: 'accountChange',
+          cb: changeListener,
+        });
+
+        await reconnectAndSetAccountWithSatsConnect(address2);
+
+        expect(changeListener).toHaveBeenCalledWith({
+          type: 'accountChange',
+          addresses: [
+            {
+              address: address2,
+              publicKey: Buffer.from(address2).toString('hex'),
+              purpose: AddressPurpose.Payment,
+              addressType: AddressType.p2wpkh,
+              walletType: WalletType.SOFTWARE,
+            },
+          ],
+        });
+      });
+
+      it('should correctly remove listers', async () => {
+        const changeListener1 = vi.fn();
+        const changeListener2 = vi.fn();
+        const changeListener3 = vi.fn();
+
+        const removeListener1 = wallet.features[SatsConnectFeatureName].provider.addListener({
+          eventName: 'accountChange',
+          cb: changeListener1,
+        });
+        const removeListener2 = wallet.features[SatsConnectFeatureName].provider.addListener({
+          eventName: 'accountChange',
+          cb: changeListener2,
+        });
+        const removeListener3 = wallet.features[SatsConnectFeatureName].provider.addListener({
+          eventName: 'accountChange',
+          cb: changeListener3,
+        });
+
+        await connectAndSetAccountWithSatsConnect(address);
+
+        // expect(changeListener1).toHaveBeenCalledTimes(1);
+        // expect(changeListener2).toHaveBeenCalledTimes(1);
+        // expect(changeListener3).toHaveBeenCalledTimes(1);
+
+        removeListener2();
+
+        mockGetSession(mockClient, [address2]);
+        emitAccountChange(address2);
+        await waitForAccountChange(address2);
+
+        // expect(changeListener1).toHaveBeenCalledTimes(2);
+        // expect(changeListener2).toHaveBeenCalledTimes(1);
+        // expect(changeListener3).toHaveBeenCalledTimes(2);
+
+        removeListener3();
+
+        mockGetSession(mockClient, [address]);
+        emitAccountChange(address);
+        await waitForAccountChange(address);
+
+        // expect(changeListener1).toHaveBeenCalledTimes(3);
+        // expect(changeListener2).toHaveBeenCalledTimes(1);
+        // expect(changeListener3).toHaveBeenCalledTimes(2);
+
+        removeListener1();
+
+        mockGetSession(mockClient, [address2]);
+        emitAccountChange(address2);
+        await waitForAccountChange(address2);
+
+        expect(changeListener1).toHaveBeenCalledTimes(3);
+        expect(changeListener2).toHaveBeenCalledTimes(1);
+        expect(changeListener3).toHaveBeenCalledTimes(2);
+      });
     });
   });
 });
