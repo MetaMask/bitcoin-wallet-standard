@@ -1,5 +1,6 @@
 import type { BitcoinConnectInput } from '@exodus/bitcoin-wallet-standard';
 import { BITCOIN_CHAINS, BitcoinConnect } from '@exodus/bitcoin-wallet-standard';
+import { KnownSessionProperties } from '@metamask/chain-agnostic-permission';
 import type { MultichainApiClient, SessionData } from '@metamask/multichain-api-client';
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput } from '@wallet-standard/features';
@@ -420,7 +421,7 @@ export class BitcoinWallet implements Wallet {
         },
       },
       sessionProperties: {
-        bitcoin_accountChanged_notifications: true,
+        [KnownSessionProperties.Bip122AccountChangedNotifications]: true,
       },
     });
 
