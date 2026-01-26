@@ -22,6 +22,7 @@ export type {
   Requests,
   RpcResponse,
   Params,
+  Address,
 } from 'sats-connect';
 
 /**
