@@ -45,6 +45,8 @@ export const mockCreateSession = (mockClient: ReturnType<typeof createMockClient
   });
 };
 
+export const mockChain = 'bitcoin:mainnet';
+
 // Mock window object for tests
 // @ts-ignore - Mocking window
 global.window = {

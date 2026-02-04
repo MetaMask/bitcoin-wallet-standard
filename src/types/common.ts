@@ -53,3 +53,10 @@ export const caipToAddressType: Record<CaipAccountType, AddressType> = {
 };
 
 export const addressTypeToCaip = reverseMapping(caipToAddressType);
+
+/**
+ * The property name for account changed notifications from chain agnostic permission.
+ *
+ *  @see "@metamask/chain-agnostic-permission".KnownSessionProperties.Bip122AccountChangedNotifications
+ */
+export const Bip122AccountChangedNotificationsProperty = 'bitcoin_accountChanged_notifications';

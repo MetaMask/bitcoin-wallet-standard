@@ -2,11 +2,15 @@ import type { BitcoinConnectInput } from '@exodus/bitcoin-wallet-standard';
 import { BITCOIN_CHAINS, BitcoinConnect } from '@exodus/bitcoin-wallet-standard';
 import type { MultichainApiClient, SessionData } from '@metamask/multichain-api-client';
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
-import type { StandardConnectOutput, StandardEventsListeners, StandardEventsNames } from '@wallet-standard/features';
+import type { StandardConnectOutput } from '@wallet-standard/features';
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
 import { decodeToken } from 'jsontokens';
 import {
   BitcoinDisconnect,
+  BitcoinEvents,
+  type BitcoinEventsListeners,
+  type BitcoinEventsNames,
+  type BitcoinEventsOnMethod,
   BitcoinSignAndSendTransaction,
   type BitcoinSignAndSendTransactionInput,
   type BitcoinSignAndSendTransactionOutput,
@@ -19,8 +23,14 @@ import {
   type BitcoinStandardFeatures,
 } from './features';
 import { metamaskIcon } from './icon';
-import { type BitcoinWalletOptions, type CaipAccountId, CaipScope } from './types/common';
 import {
+  Bip122AccountChangedNotificationsProperty,
+  type BitcoinWalletOptions,
+  type CaipAccountId,
+  CaipScope,
+} from './types/common';
+import {
+  type Address,
   AddressPurpose,
   AddressType,
   type BitcoinProvider,
@@ -42,7 +52,7 @@ import {
   type SignTransactionResponse,
   WalletType,
 } from './types/satsConnect';
-import { getAddressFromCaipAccountId, isAccountChangedEvent } from './utils';
+import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEvent } from './utils';
 
 /**
  * A read-only implementation of a wallet account.
@@ -68,7 +78,10 @@ export class WalletStandardWalletAccount extends ReadonlyWalletAccount {
  * A wallet implementation for Bitcoin.
  */
 export class BitcoinWallet implements Wallet {
-  readonly #listeners: { [E in StandardEventsNames]?: StandardEventsListeners[E][] } = {};
+  readonly #listeners: { [E in BitcoinEventsNames]?: BitcoinEventsListeners[E][] } = {};
+  readonly #satsListeners: {
+    [K in ListenerInfo['eventName']]?: Extract<ListenerInfo, { eventName: K }>['cb'][];
+  } = {};
   readonly version = '1.0.0' as const;
   readonly name;
   readonly icon = metamaskIcon;
@@ -98,6 +111,10 @@ export class BitcoinWallet implements Wallet {
       [BitcoinDisconnect]: {
         version: this.version,
         disconnect: this.#disconnect,
+      },
+      [BitcoinEvents]: {
+        version: this.version,
+        on: this.#on,
       },
       [SatsConnectFeatureName]: {
         provider: this.#getSatsConnectProvider(),
@@ -191,7 +208,7 @@ export class BitcoinWallet implements Wallet {
       return { accounts: [] };
     }
 
-    // this.#removeAccountsChangedListener = this.client.onNotification(this.#handleAccountsChangedEvent.bind(this));
+    this.#removeAccountsChangedListener = this.client.onNotification(this.#handleEvents.bind(this));
     return { accounts: this.accounts };
   };
 
@@ -211,7 +228,7 @@ export class BitcoinWallet implements Wallet {
    */
   protected updateSession(session: SessionData | undefined, selectedAddress: string | undefined) {
     // Get session scopes
-    const sessionScopes = new Set(Object.keys(session?.sessionScopes ?? {}));
+    const sessionScopes = new Set(session ? this.#getScopesFromSession(session) : []);
 
     // Find the first available scope in priority order: mainnet > testnet > regtest.
     const scopePriorityOrder = [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST];
@@ -246,10 +263,16 @@ export class BitcoinWallet implements Wallet {
       addressToConnect = getAddressFromCaipAccountId(scopeAccounts[0]);
     }
 
+    const didAddressChange = this.#account?.address !== addressToConnect;
+
     // Update the account and scope
     this.#account = this.#getAccountFromAddress(addressToConnect);
     this.scope = scope;
-    // this.#emit('change', { accounts: this.accounts });
+
+    if (didAddressChange) {
+      this.#emit('change', { accounts: this.accounts });
+      this.#emitSatsConnectAccountChange('accountChange', this.#account);
+    }
   }
 
   #getAccountFromAddress(address: string) {
@@ -308,6 +331,45 @@ export class BitcoinWallet implements Wallet {
     };
   }
 
+  /**
+   * Handles the accountsChanged and sessionChanged events.
+   * @param data - The event data
+   */
+  async #handleEvents(data: any) {
+    if (isAccountChangedEvent(data)) {
+      const newAddressSelected = data?.params?.notification?.params?.[0];
+      if (!newAddressSelected) {
+        // Disconnect if no address selected
+        await this.#disconnect();
+        return;
+      }
+      const session = await this.client.getSession();
+      if (!session) {
+        return;
+      }
+      this.updateSession(session, newAddressSelected);
+    } else if (isSessionChangedEvent(data)) {
+      const session = data?.params;
+      if (!session) {
+        return;
+      }
+      const scopes = this.#getScopesFromSession(session);
+
+      if (scopes.length === 0) {
+        // Disconnect if no scope selected
+        await this.#disconnect();
+        return;
+      }
+      const isAccountsEmpty = !(session?.sessionScopes?.[scopes[0] as CaipScope]?.accounts?.length > 0);
+      if (isAccountsEmpty) {
+        // Disconnect if no address selected
+        await this.#disconnect();
+        return;
+      }
+      this.updateSession(session, scopes[0] as CaipScope);
+    }
+  }
+
   #disconnect = async (): Promise<void> => {
     await this.client.revokeSession({ scopes: [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST] });
 
@@ -363,7 +425,7 @@ export class BitcoinWallet implements Wallet {
         },
       },
       sessionProperties: {
-        bitcoin_accountChanged_notifications: true,
+        [Bip122AccountChangedNotificationsProperty]: true,
       },
     });
 
@@ -400,14 +462,12 @@ export class BitcoinWallet implements Wallet {
 
         await this.#connect();
 
+        if (this.accounts.length < 1) {
+          throw new Error('No accounts found');
+        }
+
         return {
-          addresses: this.accounts.map(({ publicKey, address }) => ({
-            address,
-            publicKey: Buffer.from(publicKey).toString('hex'),
-            purpose: AddressPurpose.Payment,
-            addressType: AddressType.p2wpkh,
-            walletType: WalletType.SOFTWARE,
-          })),
+          addresses: this.accounts.map(this.#standardAccountToSatsAccount),
         };
       },
 
@@ -490,8 +550,27 @@ export class BitcoinWallet implements Wallet {
       },
 
       addListener: (info: ListenerInfo): (() => void) => {
-        console.log('SatsConnect addListener', { info });
-        throw new Error('Method not implemented.');
+        if (!this.#satsListeners[info.eventName]) {
+          this.#satsListeners[info.eventName] = [];
+        }
+
+        const listeners = this.#satsListeners[info.eventName];
+        const eventName = info.eventName;
+        const callback = info.cb;
+
+        (listeners as typeof listeners & Extract<ListenerInfo, { eventName: typeof info.eventName }>['cb'][]).push(
+          callback,
+        );
+
+        return () => {
+          if (!this.#satsListeners[eventName]) {
+            return;
+          }
+
+          this.#satsListeners[eventName] = this.#satsListeners[eventName]?.filter(
+            (listener) => listener !== callback,
+          ) as any;
+        };
       },
 
       getCapabilities: async (): Promise<GetCapabilitiesResponse> => {
@@ -499,4 +578,47 @@ export class BitcoinWallet implements Wallet {
       },
     };
   };
+
+  #getScopesFromSession(session: SessionData) {
+    return Object.keys(session?.sessionScopes ?? {});
+  }
+
+  #standardAccountToSatsAccount(account: WalletStandardWalletAccount): Address {
+    return {
+      address: account.address,
+      publicKey: Buffer.from(account.publicKey).toString('hex'),
+      purpose: AddressPurpose.Payment,
+      addressType: AddressType.p2wpkh,
+      walletType: WalletType.SOFTWARE,
+    };
+  }
+
+  #emitSatsConnectAccountChange(event: 'accountChange', account: WalletStandardWalletAccount): void {
+    for (const listener of this.#satsListeners[event] || []) {
+      listener({
+        type: event,
+        addresses: [this.#standardAccountToSatsAccount(account)],
+      });
+    }
+  }
+
+  #emit<E extends BitcoinEventsNames>(event: E, ...args: Parameters<BitcoinEventsListeners[E]>): void {
+    for (const listener of this.#listeners[event] ?? []) {
+      listener.apply(null, args);
+    }
+  }
+
+  #on: BitcoinEventsOnMethod = (event, listener) => {
+    if (!this.#listeners[event]) {
+      this.#listeners[event] = [];
+    }
+
+    this.#listeners[event]?.push(listener);
+
+    return (): void => this.#off(event, listener);
+  };
+
+  #off<E extends BitcoinEventsNames>(event: E, listener: BitcoinEventsListeners[E]): void {
+    this.#listeners[event] = this.#listeners[event]?.filter((existingListener) => listener !== existingListener);
+  }
 }
