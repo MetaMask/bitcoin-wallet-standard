@@ -87,7 +87,6 @@ describe('MetamaskWallet', () => {
       }),
     );
 
-
     return connectResult;
   };
 
