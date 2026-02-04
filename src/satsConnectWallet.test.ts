@@ -87,8 +87,6 @@ describe('MetamaskWallet', () => {
       }),
     );
 
-    // Emit account change event
-    // emitAccountChange(_address);
 
     return connectResult;
   };
@@ -102,9 +100,6 @@ describe('MetamaskWallet', () => {
         purposes: [AddressPurpose.Payment],
       }),
     );
-
-    // Emit account change event
-    // emitAccountChange(_address);
 
     return connectResult;
   };
@@ -623,29 +618,17 @@ describe('MetamaskWallet', () => {
 
         await connectAndSetAccountWithSatsConnect(address);
 
-        // expect(changeListener1).toHaveBeenCalledTimes(1);
-        // expect(changeListener2).toHaveBeenCalledTimes(1);
-        // expect(changeListener3).toHaveBeenCalledTimes(1);
-
         removeListener2();
 
         mockGetSession(mockClient, [address2]);
         emitAccountChange(address2);
         await waitForAccountChange(address2);
 
-        // expect(changeListener1).toHaveBeenCalledTimes(2);
-        // expect(changeListener2).toHaveBeenCalledTimes(1);
-        // expect(changeListener3).toHaveBeenCalledTimes(2);
-
         removeListener3();
 
         mockGetSession(mockClient, [address]);
         emitAccountChange(address);
         await waitForAccountChange(address);
-
-        // expect(changeListener1).toHaveBeenCalledTimes(3);
-        // expect(changeListener2).toHaveBeenCalledTimes(1);
-        // expect(changeListener3).toHaveBeenCalledTimes(2);
 
         removeListener1();
 
