@@ -53,3 +53,5 @@ export const caipToAddressType: Record<CaipAccountType, AddressType> = {
 };
 
 export const addressTypeToCaip = reverseMapping(caipToAddressType);
+
+export const Bip122AccountChangedNotificationsProperty = 'bitcoin_accountChanged_notifications';

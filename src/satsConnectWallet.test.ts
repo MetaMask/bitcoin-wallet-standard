@@ -1,4 +1,3 @@
-import { KnownSessionProperties } from '@metamask/chain-agnostic-permission';
 import type { SessionData } from '@metamask/multichain-api-client';
 import type { WalletAccount } from '@wallet-standard/base';
 import { createUnsecuredToken } from 'jsontokens';
@@ -22,7 +21,7 @@ import {
   BitcoinSignTransaction,
 } from './features';
 import { BitcoinWallet, WalletStandardWalletAccount } from './satsConnectWallet';
-import { CaipScope } from './types/common';
+import { Bip122AccountChangedNotificationsProperty, CaipScope } from './types/common';
 import { Chain } from './types/common';
 import { AddressPurpose, AddressType, SatsConnectFeatureName, WalletType } from './types/satsConnect';
 
@@ -180,7 +179,7 @@ describe('MetamaskWallet', () => {
           },
         },
         sessionProperties: {
-          [KnownSessionProperties.Bip122AccountChangedNotifications]: true,
+          [Bip122AccountChangedNotificationsProperty]: true,
         },
       });
       expect(result.accounts.length).toBe(1);
@@ -573,7 +572,7 @@ describe('MetamaskWallet', () => {
             },
           },
           sessionProperties: {
-            [KnownSessionProperties.Bip122AccountChangedNotifications]: true,
+            [Bip122AccountChangedNotificationsProperty]: true,
           },
         });
       });

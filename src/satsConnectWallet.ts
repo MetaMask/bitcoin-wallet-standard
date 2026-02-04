@@ -1,6 +1,5 @@
 import type { BitcoinConnectInput } from '@exodus/bitcoin-wallet-standard';
 import { BITCOIN_CHAINS, BitcoinConnect } from '@exodus/bitcoin-wallet-standard';
-import { KnownSessionProperties } from '@metamask/chain-agnostic-permission';
 import type { MultichainApiClient, SessionData } from '@metamask/multichain-api-client';
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput } from '@wallet-standard/features';
@@ -24,7 +23,12 @@ import {
   type BitcoinStandardFeatures,
 } from './features';
 import { metamaskIcon } from './icon';
-import { type BitcoinWalletOptions, type CaipAccountId, CaipScope } from './types/common';
+import {
+  Bip122AccountChangedNotificationsProperty,
+  type BitcoinWalletOptions,
+  type CaipAccountId,
+  CaipScope,
+} from './types/common';
 import {
   type Address,
   AddressPurpose,
@@ -421,7 +425,7 @@ export class BitcoinWallet implements Wallet {
         },
       },
       sessionProperties: {
-        [KnownSessionProperties.Bip122AccountChangedNotifications]: true,
+        [Bip122AccountChangedNotificationsProperty]: true,
       },
     });
 
