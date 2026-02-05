@@ -26,6 +26,18 @@ export type {
 } from 'sats-connect';
 
 /**
+ * SatsConnect account change event name.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/provider/types.ts#L22 | accountChangeEventName}
+ */
+export const AccountChangeEventName= 'accountChange';
+
+/**
+ * SatsConnect disconnect event name.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/provider/types.ts#L44 | accountChangeEventName}
+ */
+export const DisconnectEventName = 'disconnect';
+
+/**
  * Address purposes supported by SatsConnect.
  * We should keep the same casing as in 'sats-connect' package.
  */

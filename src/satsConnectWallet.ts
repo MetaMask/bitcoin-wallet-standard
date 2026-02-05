@@ -51,6 +51,8 @@ import {
   type SignTransactionOptions,
   type SignTransactionResponse,
   WalletType,
+  AccountChangeEventName,
+  DisconnectEventName,
 } from './types/satsConnect';
 import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEvent } from './utils';
 
@@ -271,7 +273,7 @@ export class BitcoinWallet implements Wallet {
 
     if (didAddressChange) {
       this.#emit('change', { accounts: this.accounts });
-      this.#emitSatsConnectAccountChange('accountChange', this.#account);
+      this.#emitSatsConnectAccountChange(this.#account);
     }
   }
 
@@ -377,6 +379,9 @@ export class BitcoinWallet implements Wallet {
     this.scope = undefined;
     this.#removeAccountsChangedListener?.();
     this.#removeAccountsChangedListener = undefined;
+
+    this.#emit('change', { accounts: [] });
+    this.#emitSatsConnectDisconnect();
   };
 
   #tryRestoringSession = async (): Promise<void> => {
@@ -593,11 +598,19 @@ export class BitcoinWallet implements Wallet {
     };
   }
 
-  #emitSatsConnectAccountChange(event: 'accountChange', account: WalletStandardWalletAccount): void {
-    for (const listener of this.#satsListeners[event] || []) {
+  #emitSatsConnectAccountChange(account: WalletStandardWalletAccount): void {
+    for (const listener of this.#satsListeners[AccountChangeEventName] || []) {
       listener({
-        type: event,
+        type: AccountChangeEventName,
         addresses: [this.#standardAccountToSatsAccount(account)],
+      });
+    }
+  }
+
+  #emitSatsConnectDisconnect(): void {
+    for (const listener of this.#satsListeners[DisconnectEventName] || []) {
+      listener({
+        type: DisconnectEventName,
       });
     }
   }

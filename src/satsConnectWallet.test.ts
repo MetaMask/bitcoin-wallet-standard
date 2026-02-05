@@ -23,7 +23,14 @@ import {
 import { BitcoinWallet, WalletStandardWalletAccount } from './satsConnectWallet';
 import { Bip122AccountChangedNotificationsProperty, CaipScope } from './types/common';
 import { Chain } from './types/common';
-import { AddressPurpose, AddressType, SatsConnectFeatureName, WalletType } from './types/satsConnect';
+import {
+  AddressPurpose,
+  AddressType,
+  SatsConnectFeatureName,
+  WalletType,
+  AccountChangeEventName,
+  DisconnectEventName,
+} from './types/satsConnect';
 
 describe('MetamaskWallet', () => {
   let wallet: BitcoinWallet;
@@ -214,6 +221,9 @@ describe('MetamaskWallet', () => {
 
   describe('disconnect', () => {
     it('should disconnect and clear account', async () => {
+      const changeListener = vi.fn();
+      wallet.features[BitcoinEvents].on('change', changeListener);
+
       await reconnectAndSetAccount();
 
       expect(wallet.accounts.length).toBe(1);
@@ -223,8 +233,7 @@ describe('MetamaskWallet', () => {
       // Verify account is cleared
       expect(wallet.accounts).toEqual([]);
       expect(mockClient.revokeSession).toHaveBeenCalled();
-      // TODO enable this when accountsChanged event is implemented
-      // expect(changeListener).toHaveBeenCalledWith({ accounts: [] });
+      expect(changeListener).toHaveBeenCalledWith({ accounts: [] });
     });
   });
 
@@ -577,14 +586,14 @@ describe('MetamaskWallet', () => {
         const changeListener = vi.fn();
 
         wallet.features[SatsConnectFeatureName].provider.addListener({
-          eventName: 'accountChange',
+          eventName: AccountChangeEventName,
           cb: changeListener,
         });
 
         await reconnectAndSetAccountWithSatsConnect(address2);
 
         expect(changeListener).toHaveBeenCalledWith({
-          type: 'accountChange',
+          type: AccountChangeEventName,
           addresses: [
             {
               address: address2,
@@ -597,21 +606,36 @@ describe('MetamaskWallet', () => {
         });
       });
 
+      it('should correctly register and call disconnect listener', async () => {
+        const disconnectListener = vi.fn();
+
+        wallet.features[SatsConnectFeatureName].provider.addListener({
+          eventName: DisconnectEventName,
+          cb: disconnectListener,
+        });
+
+        await reconnectAndSetAccountWithSatsConnect(address);
+
+        await wallet.features[BitcoinDisconnect].disconnect();
+
+        expect(disconnectListener).toHaveBeenCalledTimes(1);
+      });
+
       it('should correctly remove listers', async () => {
         const changeListener1 = vi.fn();
         const changeListener2 = vi.fn();
         const changeListener3 = vi.fn();
 
         const removeListener1 = wallet.features[SatsConnectFeatureName].provider.addListener({
-          eventName: 'accountChange',
+          eventName: AccountChangeEventName,
           cb: changeListener1,
         });
         const removeListener2 = wallet.features[SatsConnectFeatureName].provider.addListener({
-          eventName: 'accountChange',
+          eventName: AccountChangeEventName,
           cb: changeListener2,
         });
         const removeListener3 = wallet.features[SatsConnectFeatureName].provider.addListener({
-          eventName: 'accountChange',
+          eventName: AccountChangeEventName,
           cb: changeListener3,
         });
 
