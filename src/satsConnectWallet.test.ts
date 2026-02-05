@@ -24,12 +24,12 @@ import { BitcoinWallet, WalletStandardWalletAccount } from './satsConnectWallet'
 import { Bip122AccountChangedNotificationsProperty, CaipScope } from './types/common';
 import { Chain } from './types/common';
 import {
+  AccountChangeEventName,
   AddressPurpose,
   AddressType,
+  DisconnectEventName,
   SatsConnectFeatureName,
   WalletType,
-  AccountChangeEventName,
-  DisconnectEventName,
 } from './types/satsConnect';
 
 describe('MetamaskWallet', () => {

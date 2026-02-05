@@ -29,7 +29,7 @@ export type {
  * SatsConnect account change event name.
  * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/provider/types.ts#L22 | accountChangeEventName}
  */
-export const AccountChangeEventName= 'accountChange';
+export const AccountChangeEventName = 'accountChange';
 
 /**
  * SatsConnect disconnect event name.

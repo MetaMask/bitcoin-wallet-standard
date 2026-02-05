@@ -30,12 +30,14 @@ import {
   CaipScope,
 } from './types/common';
 import {
+  AccountChangeEventName,
   type Address,
   AddressPurpose,
   AddressType,
   type BitcoinProvider,
   type CreateInscriptionResponse,
   type CreateRepeatInscriptionsResponse,
+  DisconnectEventName,
   type GetAddressResponse,
   type GetCapabilitiesResponse,
   type ListenerInfo,
@@ -51,8 +53,6 @@ import {
   type SignTransactionOptions,
   type SignTransactionResponse,
   WalletType,
-  AccountChangeEventName,
-  DisconnectEventName,
 } from './types/satsConnect';
 import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEvent } from './utils';
 
