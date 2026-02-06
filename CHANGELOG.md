@@ -11,10 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Feat/disconnect events ([#17](https://github.com/MetaMask/bitcoin-wallet-standard/pull/17))
-- Feat/account changed events ([#15](https://github.com/MetaMask/bitcoin-wallet-standard/pull/15))
-- build(deps-dev): bump @metamask/auto-changelog from 5.1.0 to 5.3.0 ([#6](https://github.com/MetaMask/bitcoin-wallet-standard/pull/6))
-- chore(deps-dev): bump @metamask/multichain-api-client from 0.10.1 to 0.11.0 ([#13](https://github.com/MetaMask/bitcoin-wallet-standard/pull/13))
+- Handle disconnection from the extension and emit relevant events ([#17](https://github.com/MetaMask/bitcoin-wallet-standard/pull/17))
+- Emit events for account changed ([#15](https://github.com/MetaMask/bitcoin-wallet-standard/pull/15))
 
 ## [0.1.0]
 
