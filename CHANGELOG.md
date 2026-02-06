@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0]
 
-### Uncategorized
+### Added
 
 - Feat/disconnect events ([#17](https://github.com/MetaMask/bitcoin-wallet-standard/pull/17))
 - Feat/account changed events ([#15](https://github.com/MetaMask/bitcoin-wallet-standard/pull/15))
