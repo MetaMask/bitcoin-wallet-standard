@@ -59,4 +59,4 @@ export const addressTypeToCaip = reverseMapping(caipToAddressType);
  *
  *  @see "@metamask/chain-agnostic-permission".KnownSessionProperties.Bip122AccountChangedNotifications
  */
-export const Bip122AccountChangedNotificationsProperty = 'bitcoin_accountChanged_notifications';
+export const Bip122AccountChangedNotificationsProperty = 'bip122_accountChanged_notifications';
