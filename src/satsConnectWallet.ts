@@ -373,8 +373,6 @@ export class BitcoinWallet implements Wallet {
   }
 
   #disconnect = async (): Promise<void> => {
-    await this.client.revokeSession({ scopes: [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST] });
-
     this.#account = undefined;
     this.scope = undefined;
     this.#removeAccountsChangedListener?.();
@@ -382,6 +380,8 @@ export class BitcoinWallet implements Wallet {
 
     this.#emit('change', { accounts: [] });
     this.#emitSatsConnectDisconnect();
+
+    await this.client.revokeSession({ scopes: [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST] });
   };
 
   #tryRestoringSession = async (): Promise<void> => {
