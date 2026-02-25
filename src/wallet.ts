@@ -25,9 +25,9 @@ import {
 import { metamaskIcon } from './icon';
 import {
   Bip122AccountChangedNotificationsProperty,
-  type BitcoinWalletOptions,
   type CaipAccountId,
   CaipScope,
+  type MetaMaskWalletOptions,
 } from './types/common';
 import {
   AccountChangeEventName,
@@ -79,7 +79,7 @@ export class WalletStandardWalletAccount extends ReadonlyWalletAccount {
 /**
  * A wallet implementation for Bitcoin.
  */
-export class BitcoinWallet implements Wallet {
+export class MetaMaskWallet implements Wallet {
   readonly #listeners: { [E in BitcoinEventsNames]?: BitcoinEventsListeners[E][] } = {};
   readonly #satsListeners: {
     [K in ListenerInfo['eventName']]?: Extract<ListenerInfo, { eventName: K }>['cb'][];
@@ -94,7 +94,7 @@ export class BitcoinWallet implements Wallet {
   #removeAccountsChangedListener: (() => void) | undefined;
   client: MultichainApiClient;
 
-  constructor({ client, walletName }: BitcoinWalletOptions) {
+  constructor({ client, walletName }: MetaMaskWalletOptions) {
     this.client = client;
     this.name = `${walletName ?? 'MetaMask'}` as const;
     this.#selectedAddressOnPageLoadPromise = this.getInitialSelectedAddress();

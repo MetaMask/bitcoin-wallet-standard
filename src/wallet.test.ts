@@ -20,7 +20,6 @@ import {
   BitcoinSignMessage,
   BitcoinSignTransaction,
 } from './features';
-import { BitcoinWallet, WalletStandardWalletAccount } from './satsConnectWallet';
 import { Bip122AccountChangedNotificationsProperty, CaipScope } from './types/common';
 import { Chain } from './types/common';
 import {
@@ -31,9 +30,10 @@ import {
   SatsConnectFeatureName,
   WalletType,
 } from './types/satsConnect';
+import { MetaMaskWallet, WalletStandardWalletAccount } from './wallet';
 
 describe('MetamaskWallet', () => {
-  let wallet: BitcoinWallet;
+  let wallet: MetaMaskWallet;
   let mockClient: ReturnType<typeof createMockClient>;
   let notificationHandler: ReturnType<typeof vi.fn>;
 
@@ -127,10 +127,10 @@ describe('MetamaskWallet', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockClient = createMockClient();
-    wallet = new BitcoinWallet({ client: mockClient, walletName: 'MetaMask Test' });
+    wallet = new MetaMaskWallet({ client: mockClient, walletName: 'MetaMask Test' });
 
     // Mock #getInitialSelectedAddress private method to resolve immediately with undefined
-    vi.spyOn(BitcoinWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(undefined);
+    vi.spyOn(MetaMaskWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(undefined);
   });
 
   describe('constructor', () => {
@@ -143,7 +143,7 @@ describe('MetamaskWallet', () => {
     });
 
     it('should initialize with default properties', () => {
-      wallet = new BitcoinWallet({ client: mockClient });
+      wallet = new MetaMaskWallet({ client: mockClient });
       expect(wallet.name).toBe('MetaMask');
     });
 
@@ -453,12 +453,12 @@ describe('MetamaskWallet', () => {
 
     it('should use address from getInitialSelectedAddress', async () => {
       // Mocks
-      vi.spyOn(BitcoinWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(address2);
+      vi.spyOn(MetaMaskWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(address2);
       mockCreateSession(mockClient, [address, address2]);
       mockGetSession(mockClient, [address, address2]);
 
       // Create new wallet with mocked getInitialSelectedAddress
-      const walletWithInitialAddress = new BitcoinWallet({ client: mockClient });
+      const walletWithInitialAddress = new MetaMaskWallet({ client: mockClient });
 
       // Connect and verify the address from getInitialSelectedAddress was used
       const result = await walletWithInitialAddress.features[BitcoinConnect].connect({
