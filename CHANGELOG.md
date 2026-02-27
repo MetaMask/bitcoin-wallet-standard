@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### Uncategorized
+
+- fix: rename the wallet to align with what was done for Solana ([#22](https://github.com/MetaMask/bitcoin-wallet-standard/pull/22))
+- fix: revoke multichain API session as last step ([#20](https://github.com/MetaMask/bitcoin-wallet-standard/pull/20))
+- Fix/notifications property ([#19](https://github.com/MetaMask/bitcoin-wallet-standard/pull/19))
+
 ## [0.2.0]
 
 ### Added
@@ -20,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
-[Unreleased]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MetaMask/bitcoin-wallet-standard/releases/tag/v0.1.0
