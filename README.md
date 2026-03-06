@@ -69,6 +69,96 @@ const result = await signTransactionFeature.signTransaction({
 });
 ```
 
+## Connecting with wallet sats connect
+
+```
+import { type Wallet, getWallets } from '@wallet-standard/core';
+import { AddressPurpose, BitcoinNetworkType, getAddress, signMessage, sendBtcTransaction } from 'sats-connect';
+import { Buffer } from 'buffer';
+
+// Checks if a wallet is a bitcoin wallet standard wallet
+const isBitcoinSatsConnectdWallet = (wallet: Wallet): boolean => {
+  return 'sats-connect:' in wallet.features;
+}
+
+const detectedWallets = getWallets().get();
+
+const metamask_wallet = detectedWallets.find(wallet => 
+  isBitcoinSatsConnectdWallet(wallet) && wallet.name.includes('MetaMask')
+)
+
+const provider = metamask_wallet.features['sats-connect:'].provider;
+
+provider.addListener({
+  eventName: 'accountChange',
+  cb: (event) => {
+    // Handle account change
+  },
+});
+
+provider.addListener({
+  eventName: 'disconnect',
+  cb: () => {
+    // Handle disconnect
+  },
+});
+
+let selectedAccount: any;
+
+await getAddress({
+  getProvider: async () => provider,
+  payload: {
+    purposes: [AddressPurpose.Payment],
+    message: 'Address for receiving BTC',
+    network: { type: 'bitcoin:mainnet' },
+  },
+  onFinish: (response: any) => {
+    // List of connected accounts
+    const list = (response.addresses || []).map((a: any) => ({ address: a.address, purpose: a.purpose })); 
+    selectedAccount = list[0]; 
+  },
+  onCancel: () => {
+    // user cancelled
+  },
+});
+
+
+const res = await new Promise((resolve, reject) =>
+  signMessage({
+    getProvider: async () => provider,
+    payload: {
+      address: selectedAccount.address,
+      message: Buffer.from('Hello bitcoin').toString('utf8'),
+      network: { type: 'bitcoin:mainnet' },
+    },
+    onFinish: (r: any) => resolve(r),
+    onCancel: () => reject(new Error('Signature cancelled')),
+  }),
+);
+
+const toAddress = '' // Recipient address
+const amountSats = 400n // The amount we are sending in sats
+
+const res = await new Promise((resolve, reject) =>
+  sendBtcTransaction({
+    getProvider: async () => provider,
+    payload: {
+      network: { type: 'bitcoin:mainnet' },
+      recipients: [
+        {
+          address: toAdrress,
+          amountSats
+        },
+      ],
+      senderAddress: selectedAccount.address,
+    },
+    onFinish: (r: any) => resolve(r?.result?.txId || r?.txId),
+    onCancel: () => reject(new Error('Transaction cancelled')),
+  }),
+);
+
+```
+
 ## API
 
 See our documentation:
