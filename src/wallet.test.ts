@@ -180,7 +180,6 @@ describe('MetamaskWallet', () => {
       expect(result.accounts.length).toBe(1);
       expect(result.accounts[0]?.address).toBe(address);
     });
-
   });
 
   describe('events', () => {
