@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `wallet_sessionChanged` listener for handling selecting account changes and for auto connecting and disconnecting the provider when session changes are initiated outside of the provider itself ([#25](https://github.com/MetaMask/bitcoin-wallet-standard/pull/25))
+
+### Removed
+
+- Remove `metamask_accountsChanged` listener ([#25](https://github.com/MetaMask/bitcoin-wallet-standard/pull/25))
+
 ## [0.3.0]
 
 ### Fixed

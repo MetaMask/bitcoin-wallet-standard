@@ -54,7 +54,7 @@ import {
   type SignTransactionResponse,
   WalletType,
 } from './types/satsConnect';
-import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEvent } from './utils';
+import { getAddressFromCaipAccountId, isSessionChangedEvent } from './utils';
 
 /**
  * A read-only implementation of a wallet account.
@@ -88,16 +88,18 @@ export class MetaMaskWallet implements Wallet {
   readonly name;
   readonly icon = metamaskIcon;
   readonly chains: IdentifierArray = BITCOIN_CHAINS;
+  static readonly bitcoinScopes = [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST];
   protected scope: CaipScope | undefined;
-  #selectedAddressOnPageLoadPromise: Promise<string | undefined> | undefined;
   #account: WalletStandardWalletAccount | undefined;
-  #removeAccountsChangedListener: (() => void) | undefined;
+  #removeSessionChangedListener: (() => void) | undefined;
   client: MultichainApiClient;
 
   constructor({ client, walletName }: MetaMaskWalletOptions) {
     this.client = client;
     this.name = `${walletName ?? 'MetaMask'}` as const;
-    this.#selectedAddressOnPageLoadPromise = this.getInitialSelectedAddress();
+
+    this.#tryRestoringSession();
+    this.#removeSessionChangedListener = this.client.onNotification(this.#handleSessionChangedEvent.bind(this));
   }
 
   get accounts() {
@@ -166,31 +168,6 @@ export class MetaMaskWallet implements Wallet {
     };
   }
 
-  /**
-   * Listen for up to 2 seconds to the accountsChanged event emitted on page load
-   * @returns If any, the initial selected address
-   */
-  protected getInitialSelectedAddress(): Promise<string | undefined> {
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        resolve(undefined);
-      }, 2000);
-
-      const handleAccountChange = (data: any) => {
-        if (isAccountChangedEvent(data)) {
-          const address = data?.params?.notification?.params?.[0];
-          if (address) {
-            clearTimeout(timeout);
-            removeNotification?.();
-            resolve(address);
-          }
-        }
-      };
-
-      const removeNotification = this.client.onNotification(handleAccountChange);
-    });
-  }
-
   #connect = async (): Promise<StandardConnectOutput> => {
     if (this.accounts.length) {
       // Already connected
@@ -210,68 +187,50 @@ export class MetaMaskWallet implements Wallet {
       return { accounts: [] };
     }
 
-    this.#removeAccountsChangedListener = this.client.onNotification(this.#handleEvents.bind(this));
+    this.#removeSessionChangedListener?.();
+    this.#removeSessionChangedListener = this.client.onNotification(this.#handleSessionChangedEvent.bind(this));
+
     return { accounts: this.accounts };
   };
 
   /**
    * Updates the session and the account to connect to.
    * This method handles the logic for selecting the appropriate Bitcoin network scope (mainnet/testnet/regtest)
-   * and account to connect to based on the following priority:
-   * 1. First tries to find an available scope in order: mainnet > testnet > regtest, supposing the same set of accounts
-   *    is available for all Bitcoin scopes
-   * 2. For account selection:
-   *    - First tries to use the selectedAddress param, most likely coming from the accountsChanged event
-   *    - Falls back to the previously saved account if it exists in the scope
-   *    - Finally defaults to the first account in the scope
+   * and account to connect to based on the following priority: mainnet > testnet > regtest. It assumes the same
+   * set of accounts is available for all Bitcoin scopes and will take the first account found from the scopes above.
    *
    * @param session - The session data containing available scopes and accounts
-   * @param selectedAddress - The address that was selected by the user, if any
    */
-  protected updateSession(session: SessionData | undefined, selectedAddress: string | undefined) {
+  protected updateSession(session: SessionData | undefined) {
     // Get session scopes
-    const sessionScopes = new Set(session ? this.#getScopesFromSession(session) : []);
+    const sessionScopes = new Set(Object.keys(session?.sessionScopes ?? {}));
 
     // Find the first available scope in priority order: mainnet > testnet > regtest.
-    const scopePriorityOrder = [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST];
-    const scope = scopePriorityOrder.find((scope) => sessionScopes.has(scope));
+    const scope = MetaMaskWallet.bitcoinScopes.find((s) => sessionScopes.has(s));
 
     // If no scope is available, don't disconnect so that we can create/update a new session
     if (!scope) {
       this.#account = undefined;
       return;
     }
-    const scopeAccounts = session?.sessionScopes[scope]?.accounts;
+    const selectedAccountId = session?.sessionScopes[scope]?.accounts?.[0];
 
     // In case the Bitcoin scope is available but without any accounts
     // Could happen if the user already created a session using ethereum injected provider for example or the SDK
     // Don't disconnect so that we can create/update a new session
-    if (!scopeAccounts?.[0]) {
+    if (!selectedAccountId) {
       this.#account = undefined;
       return;
     }
 
-    let addressToConnect;
-    // Try to use selectedAddress
-    if (selectedAddress && scopeAccounts.includes(`${scope}:${selectedAddress}`)) {
-      addressToConnect = selectedAddress;
-    }
-    // Otherwise try to use the previously saved address in this.#account
-    else if (this.#account?.address && scopeAccounts.includes(`${scope}:${this.#account?.address}`)) {
-      addressToConnect = this.#account.address;
-    }
-    // Otherwise select first account
-    else {
-      addressToConnect = getAddressFromCaipAccountId(scopeAccounts[0]);
-    }
-
-    const didAddressChange = this.#account?.address !== addressToConnect;
+    const addressToConnect = getAddressFromCaipAccountId(selectedAccountId);
 
     // Update the account and scope
+    const previousAccount = this.#account;
     this.#account = this.#getAccountFromAddress(addressToConnect);
     this.scope = scope;
 
-    if (didAddressChange) {
+    if (this.#account.address !== previousAccount?.address) {
       this.#emit('change', { accounts: this.accounts });
       this.#emitSatsConnectAccountChange(this.#account);
     }
@@ -334,54 +293,44 @@ export class MetaMaskWallet implements Wallet {
   }
 
   /**
-   * Handles the accountsChanged and sessionChanged events.
+   * Handles the wallet_sessionChanged event.
+   * Updates internal state to connected (with correct change event) when the session has Bitcoin scopes,
+   * or to disconnected when it does not.
    * @param data - The event data
    */
-  async #handleEvents(data: any) {
-    if (isAccountChangedEvent(data)) {
-      const newAddressSelected = data?.params?.notification?.params?.[0];
-      if (!newAddressSelected) {
-        // Disconnect if no address selected
-        await this.#disconnect();
-        return;
-      }
-      const session = await this.client.getSession();
-      if (!session) {
-        return;
-      }
-      this.updateSession(session, newAddressSelected);
-    } else if (isSessionChangedEvent(data)) {
-      const session = data?.params;
-      if (!session) {
-        return;
-      }
-      const scopes = this.#getScopesFromSession(session);
+  async #handleSessionChangedEvent(data: any) {
+    if (!isSessionChangedEvent(data)) {
+      return;
+    }
 
-      if (scopes.length === 0) {
-        // Disconnect if no scope selected
-        await this.#disconnect();
-        return;
-      }
-      const isAccountsEmpty = !(session?.sessionScopes?.[scopes[0] as CaipScope]?.accounts?.length > 0);
-      if (isAccountsEmpty) {
-        // Disconnect if no address selected
-        await this.#disconnect();
-        return;
-      }
-      this.updateSession(session, scopes[0] as CaipScope);
+    const sessionScopes = Object.keys(data.params.sessionScopes);
+    const hasBitcoinScope = sessionScopes.some((s) => MetaMaskWallet.bitcoinScopes.includes(s as CaipScope));
+
+    if (hasBitcoinScope) {
+      this.updateSession(data.params);
+    } else {
+      // An empty sessionChanged event means that the Bitcoin scope was revoked outside of Wallet Standard.
+      // We don't revoke the session in this case to avoid side effects on EVM scopes
+      await this.#disconnect({ revokeSession: false });
     }
   }
 
-  #disconnect = async (): Promise<void> => {
+  #disconnect = async (options: { revokeSession?: boolean } = {}): Promise<void> => {
+    const wasConnected = Boolean(this.#account);
+    const { revokeSession = true } = options;
     this.#account = undefined;
     this.scope = undefined;
-    this.#removeAccountsChangedListener?.();
-    this.#removeAccountsChangedListener = undefined;
 
-    this.#emit('change', { accounts: [] });
-    this.#emitSatsConnectDisconnect();
+    if (wasConnected) {
+      this.#emit('change', { accounts: this.accounts });
+      this.#emitSatsConnectDisconnect();
+    }
 
-    await this.client.revokeSession({ scopes: [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST] });
+    if (revokeSession) {
+      this.#removeSessionChangedListener?.();
+      this.#removeSessionChangedListener = undefined;
+      await this.client.revokeSession({ scopes: [...MetaMaskWallet.bitcoinScopes] });
+    }
   };
 
   #tryRestoringSession = async (): Promise<void> => {
@@ -392,35 +341,13 @@ export class MetaMaskWallet implements Wallet {
         return;
       }
 
-      // Get the account from accountChanged emitted on page load, if any
-      const account = await this.#selectedAddressOnPageLoadPromise;
-      this.updateSession(existingSession, account);
+      this.updateSession(existingSession);
     } catch (error) {
       console.warn('Error restoring session', error);
     }
   };
 
   #createSession = async (scope: CaipScope, addresses?: string[]): Promise<void> => {
-    let resolvePromise: (value: string) => void;
-    const waitForAccountChangedPromise = new Promise<string>((resolve) => {
-      resolvePromise = resolve;
-    });
-
-    // If there are multiple accounts, wait for the first accountChanged event to know which one to use
-    const handleAccountChange = (data: any) => {
-      if (!isAccountChangedEvent(data)) {
-        return;
-      }
-      const selectedAddress = data?.params?.notification?.params?.[0];
-
-      if (selectedAddress) {
-        removeNotification();
-        resolvePromise(selectedAddress);
-      }
-    };
-
-    const removeNotification = this.client.onNotification(handleAccountChange);
-
     const session = await this.client.createSession({
       optionalScopes: {
         [scope]: {
@@ -430,19 +357,15 @@ export class MetaMaskWallet implements Wallet {
         },
       },
       sessionProperties: {
+        // Previously this was needed to enable metamask_accountsChanged events for Bitcoin.
+        // This isn't needed for that purpose since we now use wallet_sessionChanged events.
+        // However this is still needed to help the wallet identify our injected bitcoin provider
+        // until we migrate to a more accurate property name.
         [Bip122AccountChangedNotificationsProperty]: true,
       },
     });
 
-    console.log('WalletStandard::#createSession', { session });
-
-    // Wait for the accountChanged event to know which one to use, timeout after 200ms
-    const selectedAddress = await Promise.race([
-      waitForAccountChangedPromise,
-      new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 200)),
-    ]);
-
-    this.updateSession(session, selectedAddress);
+    this.updateSession(session);
   };
 
   /**
@@ -583,10 +506,6 @@ export class MetaMaskWallet implements Wallet {
       },
     };
   };
-
-  #getScopesFromSession(session: SessionData) {
-    return Object.keys(session?.sessionScopes ?? {});
-  }
 
   #standardAccountToSatsAccount(account: WalletStandardWalletAccount): Address {
     return {
