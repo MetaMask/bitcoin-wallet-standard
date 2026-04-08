@@ -4,7 +4,6 @@
  *
  * And be sure we only import types at build time, but there is no runtime code included !!!
  */
-import type { BitcoinProvider } from 'sats-connect';
 export type {
   BitcoinProvider,
   GetAddressResponse,
@@ -31,6 +30,7 @@ export type {
 
 /**
  * Bitcoin network types used in V4 RPC responses.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/types.ts#L3 | BitcoinNetworkType}
  */
 export enum BitcoinNetworkType {
   Mainnet = 'Mainnet',
@@ -42,6 +42,7 @@ export enum BitcoinNetworkType {
 
 /**
  * Stacks network types used in V4 RPC responses.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/types.ts#L11 | StacksNetworkType}
  */
 export enum StacksNetworkType {
   Mainnet = 'mainnet',
@@ -50,6 +51,7 @@ export enum StacksNetworkType {
 
 /**
  * Spark network types used in V4 RPC responses.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/types.ts#L21 | SparkNetworkType}
  */
 export enum SparkNetworkType {
   Mainnet = 'mainnet',
@@ -58,6 +60,7 @@ export enum SparkNetworkType {
 
 /**
  * Message signing protocols supported by SatsConnect V4.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/request/rpc/objects/namespaces/bitcoin/shared/index.ts#L1 | MessageSigningProtocols}
  */
 export enum MessageSigningProtocols {
   ECDSA = 'ECDSA',
@@ -94,6 +97,7 @@ export const DisconnectEventName = 'disconnect';
 /**
  * Address purposes supported by SatsConnect.
  * We should keep the same casing as in 'sats-connect' package.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/addresses/types.ts#L5 | AddressPurpose}
  */
 export enum AddressPurpose {
   Ordinals = 'ordinals',
@@ -105,6 +109,7 @@ export enum AddressPurpose {
 
 /**
  * Wallet types supported by SatsConnect.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/request/rpc/objects/shared/index.ts#L5 | WalletType}
  */
 export enum WalletType {
   SOFTWARE = 'software',
@@ -115,6 +120,7 @@ export enum WalletType {
 /**
  * Address types supported by SatsConnect.
  * We should keep the same casing as in 'sats-connect' package.
+ * @see {@link https://github.com/secretkeylabs/sats-connect-core/blob/main/src/addresses/types.ts#L18 | AddressType}
  */
 export enum AddressType {
   p2pkh = 'p2pkh',
@@ -125,27 +131,4 @@ export enum AddressType {
   stacks = 'stacks',
   starknet = 'starknet',
   spark = 'spark',
-}
-
-/**
- * The namespace used to identify the SatsConnect feature.
- */
-export const SatsConnectFeatureName = 'sats-connect:';
-
-/**
- * The SatsConnect feature interface.
- */
-export type SatsConnectFeature = {
-  [SatsConnectFeatureName]: {
-    provider: BitcoinProvider;
-  };
-};
-
-/**
- * SatsConnect address
- */
-export interface SatsConnectAccount {
-  purpose: AddressPurpose;
-  publicKey: Uint8Array;
-  address: string;
 }

@@ -11,6 +11,8 @@ import {
   type BitcoinEventsListeners,
   type BitcoinEventsNames,
   type BitcoinEventsOnMethod,
+  BitcoinSatsConnect,
+  type BitcoinSatsConnectFeature,
   BitcoinSignAndSendTransaction,
   type BitcoinSignAndSendTransactionInput,
   type BitcoinSignAndSendTransactionOutput,
@@ -47,8 +49,6 @@ import {
   type Requests,
   RpcErrorCode,
   type RpcResponse,
-  type SatsConnectFeature,
-  SatsConnectFeatureName,
   type SendBtcTransactionOptions,
   type SendBtcTransactionResponse,
   type SendTransferParams,
@@ -70,7 +70,7 @@ import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEve
 export class WalletStandardWalletAccount extends ReadonlyWalletAccount {
   constructor({ address, publicKey, chains }: { address: string; publicKey: Uint8Array; chains: IdentifierArray }) {
     const features: IdentifierArray = [
-      SatsConnectFeatureName,
+      BitcoinSatsConnect,
       BitcoinConnect,
       BitcoinDisconnect,
       BitcoinSignTransaction,
@@ -112,7 +112,7 @@ export class MetaMaskWallet implements Wallet {
     return this.#account ? [this.#account] : [];
   }
 
-  get features(): SatsConnectFeature & BitcoinStandardFeatures {
+  get features(): BitcoinSatsConnectFeature & BitcoinStandardFeatures {
     return {
       [BitcoinConnect]: {
         version: this.version,
@@ -126,7 +126,7 @@ export class MetaMaskWallet implements Wallet {
         version: this.version,
         on: this.#on,
       },
-      [SatsConnectFeatureName]: {
+      [BitcoinSatsConnect]: {
         provider: this.#getSatsConnectProvider(),
       },
       [BitcoinSignTransaction]: {
@@ -504,8 +504,7 @@ export class MetaMaskWallet implements Wallet {
       /**
        * SatsConnect V4 JSON-RPC request handler.
        *
-       * Implements the `BitcoinProvider.request` interface from sats-connect v4,
-       * bridging SatsConnect RPC calls to the MetaMask Multichain API.
+       * Implements the `BitcoinProvider.request` interface from sats-connect v4.
        *
        * @see {@link https://docs.xverse.app/sats-connect} SatsConnect V4 documentation
        * @see {@link https://github.com/secretkeylabs/sats-connect} sats-connect GitHub
@@ -533,10 +532,10 @@ export class MetaMaskWallet implements Wallet {
         _providerId?: string,
       ): Promise<RpcResponse<Method>> => {
         const success = (result: unknown): RpcResponse<Method> =>
-          ({ jsonrpc: '2.0', id: null, result } as RpcResponse<Method>);
+          ({ jsonrpc: '2.0', id: null, result }) as RpcResponse<Method>;
 
         const error = (code: RpcErrorCode, message: string): RpcResponse<Method> =>
-          ({ jsonrpc: '2.0', id: null, error: { code, message } } as RpcResponse<Method>);
+          ({ jsonrpc: '2.0', id: null, error: { code, message } }) as RpcResponse<Method>;
 
         const network = {
           bitcoin: { name: BitcoinNetworkType.Mainnet },

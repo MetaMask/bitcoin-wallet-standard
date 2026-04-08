@@ -16,6 +16,7 @@ import {
   BitcoinConnect,
   BitcoinDisconnect,
   BitcoinEvents,
+  BitcoinSatsConnect,
   BitcoinSignAndSendTransaction,
   BitcoinSignMessage,
   BitcoinSignTransaction,
@@ -30,7 +31,6 @@ import {
   DisconnectEventName,
   MessageSigningProtocols,
   RpcErrorCode,
-  SatsConnectFeatureName,
   SparkNetworkType,
   StacksNetworkType,
   WalletType,
@@ -93,7 +93,7 @@ describe('MetamaskWallet', () => {
     mockCreateSession(mockClient, [_address]);
     setupNotificationHandler();
 
-    const connectResult = await wallet.features[SatsConnectFeatureName].provider.connect(
+    const connectResult = await wallet.features[BitcoinSatsConnect].provider.connect(
       createUnsecuredToken({
         purposes: [AddressPurpose.Payment],
       }),
@@ -106,7 +106,7 @@ describe('MetamaskWallet', () => {
     mockGetSession(mockClient, [_address]);
     setupNotificationHandler();
 
-    const connectResult = wallet.features[SatsConnectFeatureName].provider.connect(
+    const connectResult = wallet.features[BitcoinSatsConnect].provider.connect(
       createUnsecuredToken({
         purposes: [AddressPurpose.Payment],
       }),
@@ -156,7 +156,7 @@ describe('MetamaskWallet', () => {
       const features = wallet.features;
       expect(features[BitcoinConnect]).toBeDefined();
       expect(features[BitcoinDisconnect]).toBeDefined();
-      expect(features[SatsConnectFeatureName]).toBeDefined();
+      expect(features[BitcoinSatsConnect]).toBeDefined();
       expect(features[BitcoinSignTransaction]).toBeDefined();
       expect(features[BitcoinSignAndSendTransaction]).toBeDefined();
       expect(features[BitcoinSignMessage]).toBeDefined();
@@ -424,7 +424,7 @@ describe('MetamaskWallet', () => {
       expect(account.publicKey).toEqual(publicKey);
       expect(account.chains).toEqual(wallet.chains);
       expect(account.features).toEqual([
-        SatsConnectFeatureName,
+        BitcoinSatsConnect,
         BitcoinConnect,
         BitcoinDisconnect,
         BitcoinSignTransaction,
@@ -570,7 +570,7 @@ describe('MetamaskWallet', () => {
 
     describe('getInfo', () => {
       it('should return wallet info', async () => {
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('getInfo', null);
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('getInfo', null);
 
         expect(result).toMatchObject({
           jsonrpc: '2.0',
@@ -587,7 +587,7 @@ describe('MetamaskWallet', () => {
       it('should connect and return addresses with network info', async () => {
         await reconnectAndSetAccount(address);
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('getAddresses', {
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('getAddresses', {
           purposes: [AddressPurpose.Payment],
         });
 
@@ -613,7 +613,7 @@ describe('MetamaskWallet', () => {
       it('should connect and return accounts list', async () => {
         await reconnectAndSetAccount(address);
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('getAccounts', {
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('getAccounts', {
           purposes: [AddressPurpose.Payment],
         });
 
@@ -636,7 +636,7 @@ describe('MetamaskWallet', () => {
       it('should connect and return full wallet connect result', async () => {
         await reconnectAndSetAccount(address);
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('wallet_connect', null);
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('wallet_connect', null);
 
         expect(result).toMatchObject({
           jsonrpc: '2.0',
@@ -656,7 +656,7 @@ describe('MetamaskWallet', () => {
         const signature = 'v4signature';
         mockClient.invokeMethod.mockResolvedValue({ signature });
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('signMessage', {
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('signMessage', {
           address,
           message: 'hello',
         });
@@ -687,7 +687,7 @@ describe('MetamaskWallet', () => {
         const txid = 'v4txid';
         mockClient.invokeMethod.mockResolvedValue({ txid });
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('sendTransfer', {
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('sendTransfer', {
           recipients: [{ address: address2, amount: 50000 }],
         });
 
@@ -706,7 +706,7 @@ describe('MetamaskWallet', () => {
       });
 
       it('should return error if not connected', async () => {
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('sendTransfer', {
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('sendTransfer', {
           recipients: [{ address: address2, amount: 50000 }],
         });
 
@@ -724,7 +724,7 @@ describe('MetamaskWallet', () => {
         const signedPsbt = 'signedBase64Psbt';
         mockClient.invokeMethod.mockResolvedValue({ psbt: signedPsbt, txid: undefined });
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('signPsbt', {
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('signPsbt', {
           psbt: 'originalBase64Psbt',
           broadcast: false,
         });
@@ -752,10 +752,7 @@ describe('MetamaskWallet', () => {
       it('should connect and return true when permissions are granted', async () => {
         await reconnectAndSetAccount(address);
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request(
-          'wallet_requestPermissions',
-          null,
-        );
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('wallet_requestPermissions', null);
 
         expect(result).toMatchObject({ jsonrpc: '2.0', result: true });
       });
@@ -765,10 +762,7 @@ describe('MetamaskWallet', () => {
         mockClient.getSession.mockResolvedValue(null);
         mockClient.createSession.mockResolvedValue({ sessionScopes: {} });
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request(
-          'wallet_requestPermissions',
-          null,
-        );
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('wallet_requestPermissions', null);
 
         expect(result).toMatchObject({
           jsonrpc: '2.0',
@@ -782,7 +776,7 @@ describe('MetamaskWallet', () => {
         await reconnectAndSetAccount(address);
         expect(wallet.accounts.length).toBe(1);
 
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('wallet_disconnect', null);
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('wallet_disconnect', null);
 
         expect(result).toMatchObject({ jsonrpc: '2.0', result: null });
         expect(wallet.accounts).toEqual([]);
@@ -792,7 +786,7 @@ describe('MetamaskWallet', () => {
 
     describe('wallet_getWalletType', () => {
       it('should return software wallet type', async () => {
-        const result = await wallet.features[SatsConnectFeatureName].provider.request('wallet_getWalletType', null);
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('wallet_getWalletType', null);
 
         expect(result).toMatchObject({ jsonrpc: '2.0', result: WalletType.SOFTWARE });
       });
@@ -800,7 +794,7 @@ describe('MetamaskWallet', () => {
 
     describe('unsupported methods', () => {
       it('should return METHOD_NOT_FOUND error for unknown methods', async () => {
-        const result = await wallet.features[SatsConnectFeatureName].provider.request(
+        const result = await wallet.features[BitcoinSatsConnect].provider.request(
           'runes_getBalance' as any,
           null as any,
         );
@@ -842,7 +836,7 @@ describe('MetamaskWallet', () => {
       it('should correctly register and call accountChange listener', async () => {
         const changeListener = vi.fn();
 
-        wallet.features[SatsConnectFeatureName].provider.addListener({
+        wallet.features[BitcoinSatsConnect].provider.addListener({
           eventName: AccountChangeEventName,
           cb: changeListener,
         });
@@ -866,7 +860,7 @@ describe('MetamaskWallet', () => {
       it('should correctly register and call disconnect listener', async () => {
         const disconnectListener = vi.fn();
 
-        wallet.features[SatsConnectFeatureName].provider.addListener({
+        wallet.features[BitcoinSatsConnect].provider.addListener({
           eventName: DisconnectEventName,
           cb: disconnectListener,
         });
@@ -883,15 +877,15 @@ describe('MetamaskWallet', () => {
         const changeListener2 = vi.fn();
         const changeListener3 = vi.fn();
 
-        const removeListener1 = wallet.features[SatsConnectFeatureName].provider.addListener({
+        const removeListener1 = wallet.features[BitcoinSatsConnect].provider.addListener({
           eventName: AccountChangeEventName,
           cb: changeListener1,
         });
-        const removeListener2 = wallet.features[SatsConnectFeatureName].provider.addListener({
+        const removeListener2 = wallet.features[BitcoinSatsConnect].provider.addListener({
           eventName: AccountChangeEventName,
           cb: changeListener2,
         });
-        const removeListener3 = wallet.features[SatsConnectFeatureName].provider.addListener({
+        const removeListener3 = wallet.features[BitcoinSatsConnect].provider.addListener({
           eventName: AccountChangeEventName,
           cb: changeListener3,
         });
