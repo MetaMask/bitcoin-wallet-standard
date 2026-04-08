@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add compatibility with Sats Connect v4 API
+
 ## [0.3.0]
 
 ### Fixed
