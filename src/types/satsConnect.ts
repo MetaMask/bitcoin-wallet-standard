@@ -23,7 +23,61 @@ export type {
   RpcResponse,
   Params,
   Address,
+  // V4 RPC method param types
+  SignMessageParams,
+  SendTransferParams,
+  SignPsbtParams,
 } from 'sats-connect';
+
+/**
+ * Bitcoin network types used in V4 RPC responses.
+ */
+export enum BitcoinNetworkType {
+  Mainnet = 'Mainnet',
+  Testnet = 'Testnet',
+  Testnet4 = 'Testnet4',
+  Signet = 'Signet',
+  Regtest = 'Regtest',
+}
+
+/**
+ * Stacks network types used in V4 RPC responses.
+ */
+export enum StacksNetworkType {
+  Mainnet = 'mainnet',
+  Testnet = 'testnet',
+}
+
+/**
+ * Spark network types used in V4 RPC responses.
+ */
+export enum SparkNetworkType {
+  Mainnet = 'mainnet',
+  Regtest = 'regtest',
+}
+
+/**
+ * Message signing protocols supported by SatsConnect V4.
+ */
+export enum MessageSigningProtocols {
+  ECDSA = 'ECDSA',
+  BIP322 = 'BIP322',
+}
+
+/**
+ * JSON-RPC error codes used in V4 RPC error responses.
+ * @see {@link https://www.jsonrpc.org/specification#error_object}
+ */
+export enum RpcErrorCode {
+  PARSE_ERROR = -32700,
+  INVALID_REQUEST = -32600,
+  METHOD_NOT_FOUND = -32601,
+  INVALID_PARAMS = -32602,
+  INTERNAL_ERROR = -32603,
+  USER_REJECTION = -32000,
+  METHOD_NOT_SUPPORTED = -32001,
+  ACCESS_DENIED = -32002,
+}
 
 /**
  * SatsConnect account change event name.
