@@ -383,8 +383,8 @@ export class MetaMaskWallet implements Wallet {
       },
       sessionProperties: {
         // Previously this was needed to enable metamask_accountsChanged events for Bitcoin.
-        // This isn't needed for that purpose since we now encode selected accounts in the 
-        // wallet_sessionChanged events. However this is still needed to help the wallet identify 
+        // This isn't needed for that purpose since we now encode selected accounts in the
+        // wallet_sessionChanged events. However this is still needed to help the wallet identify
         // our injected bitcoin provider until we migrate to a more accurate property name.
         [Bip122AccountChangedNotificationsProperty]: true,
       },
