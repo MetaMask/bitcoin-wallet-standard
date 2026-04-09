@@ -69,23 +69,26 @@ const result = await signTransactionFeature.signTransaction({
 });
 ```
 
-## Connecting with wallet sats connect
+## Connecting with Sats Connect
 
-```
+The `sats-connect:` feature exposes the wallet's Bitcoin provider. Two major versions of sats-connect have different APIs — v3 is callback-based, v4 is promise-based (JSON-RPC).
+
+### Sats Connect v3
+
+```typescript
 import { type Wallet, getWallets } from '@wallet-standard/core';
 import { AddressPurpose, BitcoinNetworkType, getAddress, signMessage, sendBtcTransaction } from 'sats-connect';
 import { Buffer } from 'buffer';
 
-// Checks if a wallet is a bitcoin wallet standard wallet
-const isBitcoinSatsConnectdWallet = (wallet: Wallet): boolean => {
+const isBitcoinSatsConnectWallet = (wallet: Wallet): boolean => {
   return 'sats-connect:' in wallet.features;
 }
 
 const detectedWallets = getWallets().get();
 
-const metamask_wallet = detectedWallets.find(wallet => 
-  isBitcoinSatsConnectdWallet(wallet) && wallet.name.includes('MetaMask')
-)
+const metamask_wallet = detectedWallets.find(wallet =>
+  isBitcoinSatsConnectWallet(wallet) && wallet.name.includes('MetaMask')
+);
 
 const provider = metamask_wallet.features['sats-connect:'].provider;
 
@@ -105,58 +108,136 @@ provider.addListener({
 
 let selectedAccount: any;
 
+// Connect and get address
 await getAddress({
   getProvider: async () => provider,
   payload: {
     purposes: [AddressPurpose.Payment],
     message: 'Address for receiving BTC',
-    network: { type: 'bitcoin:mainnet' },
+    network: { type: BitcoinNetworkType.Mainnet },
   },
   onFinish: (response: any) => {
-    // List of connected accounts
-    const list = (response.addresses || []).map((a: any) => ({ address: a.address, purpose: a.purpose })); 
-    selectedAccount = list[0]; 
+    const list = (response.addresses || []).map((a: any) => ({ address: a.address, purpose: a.purpose }));
+    selectedAccount = list[0];
   },
   onCancel: () => {
     // user cancelled
   },
 });
 
-
-const res = await new Promise((resolve, reject) =>
+// Sign a message
+const signature = await new Promise((resolve, reject) =>
   signMessage({
     getProvider: async () => provider,
     payload: {
       address: selectedAccount.address,
       message: Buffer.from('Hello bitcoin').toString('utf8'),
-      network: { type: 'bitcoin:mainnet' },
+      network: { type: BitcoinNetworkType.Mainnet },
     },
     onFinish: (r: any) => resolve(r),
     onCancel: () => reject(new Error('Signature cancelled')),
   }),
 );
 
-const toAddress = '' // Recipient address
-const amountSats = 400n // The amount we are sending in sats
+// Send a transaction
+const toAddress = ''; // Recipient address
+const amountSats = 400n;
 
-const res = await new Promise((resolve, reject) =>
+const txId = await new Promise((resolve, reject) =>
   sendBtcTransaction({
     getProvider: async () => provider,
     payload: {
-      network: { type: 'bitcoin:mainnet' },
-      recipients: [
-        {
-          address: toAdrress,
-          amountSats
-        },
-      ],
+      network: { type: BitcoinNetworkType.Mainnet },
+      recipients: [{ address: toAddress, amountSats }],
       senderAddress: selectedAccount.address,
     },
     onFinish: (r: any) => resolve(r?.result?.txId || r?.txId),
     onCancel: () => reject(new Error('Transaction cancelled')),
   }),
 );
+```
 
+### Sats Connect v4
+
+v4 uses a promise-based JSON-RPC API via a `Wallet` singleton. It does not use `@wallet-standard/core` natively — its default adapter registry only covers Xverse, Unisat, and Fordefi. To use it with MetaMask (or any wallet-standard provider), expose the provider on `window` at a known key: v4 resolves providers via `getProviderById(id)` which traverses `window` by path, so this is the native mechanism the library was designed for.
+
+```typescript
+import { type Wallet, getWallets } from '@wallet-standard/core';
+import WalletV4 from 'sats-connect'; // v4
+
+const isBitcoinSatsConnectWallet = (wallet: Wallet): boolean => {
+  return 'sats-connect:' in wallet.features;
+}
+
+const detectedWallets = getWallets().get();
+
+const metamask_wallet = detectedWallets.find(wallet =>
+  isBitcoinSatsConnectWallet(wallet) && wallet.name.includes('MetaMask')
+);
+
+const provider = metamask_wallet.features['sats-connect:'].provider;
+
+// Expose the wallet-standard provider on window so v4 can resolve it.
+// v4's getProviderById(id) traverses window by the providerId path string —
+// this is the native provider resolution mechanism of sats-connect v4.
+const PROVIDER_ID = '__walletStandardProvider';
+
+(window as any)[PROVIDER_ID] = provider;
+(WalletV4 as any).providerId = PROVIDER_ID;
+
+// Connect and get addresses
+const connectResponse = await WalletV4.request('getAddresses', {
+  purposes: ['payment'],
+  message: 'Address for receiving BTC',
+});
+
+if (connectResponse.status === 'error') {
+  throw new Error(connectResponse.error.message);
+}
+
+const selectedAccount = connectResponse.result.addresses[0];
+
+// Sign a message
+const signResponse = await WalletV4.request('signMessage', {
+  address: selectedAccount.address,
+  message: 'Hello bitcoin',
+});
+
+if (signResponse.status === 'error') {
+  throw new Error(signResponse.error.message);
+}
+
+const signature = signResponse.result.signature;
+
+// Send a transaction
+const sendResponse = await WalletV4.request('sendTransfer', {
+  recipients: [{ address: '...', amount: 400 }],
+});
+
+if (sendResponse.status === 'error') {
+  throw new Error(sendResponse.error.message);
+}
+
+const txId = sendResponse.result.txid;
+
+// Sign a PSBT
+const psbtResponse = await WalletV4.request('signPsbt', {
+  psbt: '<base64-encoded-psbt>',
+  signInputs: {
+    [selectedAccount.address]: [0], // address → input indexes to sign
+  },
+  broadcast: false,
+});
+
+if (psbtResponse.status === 'error') {
+  throw new Error(psbtResponse.error.message);
+}
+
+const signedPsbt = psbtResponse.result.psbt;
+
+// Cleanup on disconnect
+delete (window as any)[PROVIDER_ID];
+(WalletV4 as any).providerId = undefined;
 ```
 
 ## API

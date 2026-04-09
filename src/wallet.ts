@@ -11,6 +11,8 @@ import {
   type BitcoinEventsListeners,
   type BitcoinEventsNames,
   type BitcoinEventsOnMethod,
+  BitcoinSatsConnect,
+  type BitcoinSatsConnectFeature,
   BitcoinSignAndSendTransaction,
   type BitcoinSignAndSendTransactionInput,
   type BitcoinSignAndSendTransactionOutput,
@@ -34,6 +36,7 @@ import {
   type Address,
   AddressPurpose,
   AddressType,
+  BitcoinNetworkType,
   type BitcoinProvider,
   type CreateInscriptionResponse,
   type CreateRepeatInscriptionsResponse,
@@ -41,17 +44,22 @@ import {
   type GetAddressResponse,
   type GetCapabilitiesResponse,
   type ListenerInfo,
+  MessageSigningProtocols,
   type Params,
   type Requests,
+  RpcErrorCode,
   type RpcResponse,
-  type SatsConnectFeature,
-  SatsConnectFeatureName,
   type SendBtcTransactionOptions,
   type SendBtcTransactionResponse,
+  type SendTransferParams,
   type SignMessageOptions,
+  type SignMessageParams,
   type SignMultipleTransactionsResponse,
+  type SignPsbtParams,
   type SignTransactionOptions,
   type SignTransactionResponse,
+  SparkNetworkType,
+  StacksNetworkType,
   WalletType,
 } from './types/satsConnect';
 import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEvent } from './utils';
@@ -62,7 +70,7 @@ import { getAddressFromCaipAccountId, isAccountChangedEvent, isSessionChangedEve
 export class WalletStandardWalletAccount extends ReadonlyWalletAccount {
   constructor({ address, publicKey, chains }: { address: string; publicKey: Uint8Array; chains: IdentifierArray }) {
     const features: IdentifierArray = [
-      SatsConnectFeatureName,
+      BitcoinSatsConnect,
       BitcoinConnect,
       BitcoinDisconnect,
       BitcoinSignTransaction,
@@ -104,7 +112,7 @@ export class MetaMaskWallet implements Wallet {
     return this.#account ? [this.#account] : [];
   }
 
-  get features(): SatsConnectFeature & BitcoinStandardFeatures {
+  get features(): BitcoinSatsConnectFeature & BitcoinStandardFeatures {
     return {
       [BitcoinConnect]: {
         version: this.version,
@@ -118,7 +126,7 @@ export class MetaMaskWallet implements Wallet {
         version: this.version,
         on: this.#on,
       },
-      [SatsConnectFeatureName]: {
+      [BitcoinSatsConnect]: {
         provider: this.#getSatsConnectProvider(),
       },
       [BitcoinSignTransaction]: {
@@ -304,6 +312,23 @@ export class MetaMaskWallet implements Wallet {
     return signMessageRes.signature;
   }
 
+  async #sendTransferInternal(recipients: { address: string; amount: string }[]): Promise<string> {
+    if (!this.scope) {
+      throw new Error('Scope not found.');
+    }
+    const result = await this.client.invokeMethod({
+      scope: this.scope,
+      request: {
+        method: 'sendTransfer',
+        params: {
+          recipients,
+          account: { address: this.#account?.address ?? '' },
+        },
+      },
+    });
+    return result.txid;
+  }
+
   async #signTransactionInternal(psbtBase64: string, broadcast = false): Promise<SignTransactionResponse> {
     const selectedAccount = this.#account;
 
@@ -476,13 +501,130 @@ export class MetaMaskWallet implements Wallet {
         };
       },
 
+      /**
+       * SatsConnect V4 JSON-RPC request handler.
+       *
+       * Implements the `BitcoinProvider.request` interface from sats-connect v4.
+       *
+       * @see {@link https://docs.xverse.app/sats-connect} SatsConnect V4 documentation
+       * @see {@link https://github.com/secretkeylabs/sats-connect} sats-connect GitHub
+       *
+       * Supported methods:
+       * - `getInfo`                 — Returns wallet metadata (version, supported methods)
+       * - `getAddresses`            — Connects and returns addresses with network info {@link https://docs.xverse.app/sats-connect/bitcoin-methods/getaddresses}
+       * - `getAccounts`             — Connects and returns the accounts list
+       * - `wallet_connect`          — Connects and returns addresses, network and wallet type
+       * - `wallet_requestPermissions` — Requests wallet connection permissions
+       * - `wallet_disconnect`       — Disconnects the wallet session
+       * - `wallet_getWalletType`    — Returns the wallet type (SOFTWARE)
+       * - `signMessage`             — Signs an arbitrary message {@link https://docs.xverse.app/sats-connect/bitcoin-methods/signmessage}
+       * - `sendTransfer`            — Sends BTC to one or more recipients {@link https://docs.xverse.app/sats-connect/bitcoin-methods/sendtransfer}
+       * - `signPsbt`                — Signs a base64-encoded PSBT, optionally broadcasting it {@link https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt}
+       *
+       * @param method - The RPC method name
+       * @param options - Method-specific parameters
+       * @param _providerId - Unused provider identifier (SatsConnect compat)
+       * @returns A JSON-RPC 2.0 response object with either `result` or `error`
+       */
       request: async <Method extends keyof Requests>(
         method: Method,
         options: Params<Method>,
-        providerId?: string,
+        _providerId?: string,
       ): Promise<RpcResponse<Method>> => {
-        console.log('SatsConnect request', { method, options, providerId });
-        throw new Error('Method not implemented.');
+        const success = (result: unknown): RpcResponse<Method> =>
+          ({ jsonrpc: '2.0', id: null, result }) as RpcResponse<Method>;
+
+        const error = (code: RpcErrorCode, message: string): RpcResponse<Method> =>
+          ({ jsonrpc: '2.0', id: null, error: { code, message } }) as RpcResponse<Method>;
+
+        const network = {
+          bitcoin: { name: BitcoinNetworkType.Mainnet },
+          stacks: { name: StacksNetworkType.Mainnet },
+          spark: { name: SparkNetworkType.Mainnet },
+        };
+
+        switch (method as string) {
+          case 'getInfo': {
+            return success({
+              version: this.version,
+              supports: [],
+              methods: [
+                'getAddresses',
+                'getAccounts',
+                'signMessage',
+                'sendTransfer',
+                'signPsbt',
+                'wallet_connect',
+                'wallet_disconnect',
+                'wallet_getWalletType',
+                'wallet_requestPermissions',
+              ],
+            });
+          }
+
+          case 'getAddresses':
+          case 'getAccounts':
+          case 'wallet_connect':
+          case 'wallet_requestPermissions': {
+            await this.#connect();
+            if (!this.accounts.length) {
+              return error(RpcErrorCode.ACCESS_DENIED, 'No accounts found');
+            }
+            if (method === 'wallet_requestPermissions') {
+              return success(true);
+            }
+            const addresses = this.accounts.map(this.#standardAccountToSatsAccount);
+            if (method === 'getAccounts') {
+              return success(addresses);
+            }
+            if (method === 'getAddresses') {
+              return success({ addresses, network });
+            }
+            // wallet_connect
+            return success({ id: '', addresses, walletType: WalletType.SOFTWARE, network });
+          }
+
+          case 'signMessage': {
+            const params = options as SignMessageParams;
+            const signature = await this.#signMessageInternal(params.message);
+            return success({
+              signature,
+              messageHash: '',
+              address: this.#account?.address ?? '',
+              protocol: MessageSigningProtocols.ECDSA,
+            });
+          }
+
+          case 'sendTransfer': {
+            if (!this.scope) {
+              return error(RpcErrorCode.INTERNAL_ERROR, 'Scope not found.');
+            }
+            const { recipients } = options as SendTransferParams;
+            const txid = await this.#sendTransferInternal(
+              recipients.map((r) => ({ address: r.address, amount: r.amount.toString() })),
+            );
+            return success({ txid });
+          }
+
+          case 'signPsbt': {
+            const { psbt, broadcast } = options as SignPsbtParams;
+            const result = await this.#signTransactionInternal(psbt, broadcast);
+            return success({ psbt: result.psbtBase64, txid: result.txId });
+          }
+
+          case 'wallet_disconnect': {
+            await this.#disconnect();
+            return success(null);
+          }
+
+          case 'wallet_getWalletType': {
+            return success(WalletType.SOFTWARE);
+          }
+
+          default: {
+            return error(RpcErrorCode.METHOD_NOT_FOUND, `Method "${String(method)}" is not supported.`);
+          }
+        }
       },
 
       signTransaction: async (request: string): Promise<SignTransactionResponse> => {
@@ -506,28 +648,12 @@ export class MetaMaskWallet implements Wallet {
       },
 
       sendBtcTransaction: async (request: string): Promise<SendBtcTransactionResponse> => {
-        if (!this.scope) {
-          throw new Error('Scope not found.');
-        }
-
         const { payload } = decodeToken(request) as unknown as SendBtcTransactionOptions;
         console.log('SatsConnect sendBtcTransaction', { payload });
 
-        const sendBtcTransactionRes = await this.client.invokeMethod({
-          scope: this.scope,
-          request: {
-            method: 'sendTransfer',
-            params: {
-              recipients: payload.recipients.map((recipient) => ({
-                address: recipient.address,
-                amount: recipient.amountSats.toString(),
-              })),
-              account: { address: this.#account?.address ?? '' },
-            },
-          },
-        });
-
-        return sendBtcTransactionRes.txid;
+        return this.#sendTransferInternal(
+          payload.recipients.map((r) => ({ address: r.address, amount: r.amountSats.toString() })),
+        );
       },
 
       createInscription: async (request: string): Promise<CreateInscriptionResponse> => {

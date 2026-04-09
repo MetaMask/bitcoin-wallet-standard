@@ -699,7 +699,7 @@ __metadata:
     depcheck: "npm:^1.4.3"
     jsontokens: "npm:^4.0.1"
     prettier: "npm:^3.5.3"
-    sats-connect: "npm:^4.1.1"
+    sats-connect: "npm:^4.2.1"
     ts-node: "npm:^10.7.0"
     typedoc: "npm:^0.26.11"
     typescript: "npm:~5.7.3"
@@ -1107,9 +1107,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sats-connect/core@npm:0.9.0":
-  version: 0.9.0
-  resolution: "@sats-connect/core@npm:0.9.0"
+"@sats-connect/core@npm:0.10.0":
+  version: 0.10.0
+  resolution: "@sats-connect/core@npm:0.10.0"
   dependencies:
     axios: "npm:1.12.0"
     bitcoin-address-validation: "npm:3.0.0"
@@ -1117,7 +1117,7 @@ __metadata:
     jsontokens: "npm:4.0.1"
   peerDependencies:
     valibot: 1.1.0
-  checksum: 10/f4284fa78960d70e8328016fa7a3bbb11c486911c66853729de88c204a1ed948f1e5f29c5bef1f232b0db0ebf947f6783095699da5a0dc7c8dabbbc104d9b05c
+  checksum: 10/8c9a25adf995057529a909a8752942dad4fcb822ef4edbd2529e1987e96278de069f43f37aa26a127133597aae2f02e6d5cd9742a1c3ca1df085f55ed3bbe04d
   languageName: node
   linkType: hard
 
@@ -4328,15 +4328,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sats-connect@npm:^4.1.1":
-  version: 4.1.1
-  resolution: "sats-connect@npm:4.1.1"
+"sats-connect@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "sats-connect@npm:4.2.1"
   dependencies:
-    "@sats-connect/core": "npm:0.9.0"
+    "@sats-connect/core": "npm:0.10.0"
     "@sats-connect/make-default-provider-config": "npm:0.0.10"
     "@sats-connect/ui": "npm:0.0.7"
     valibot: "npm:1.1.0"
-  checksum: 10/a39e3d9c70fb59438a35ac10116e5482733364cb8358712a22376c44fed63ca0d4923ebbedf363e3d32451b799db6c11f5b68bd8d2d8d1843920f4d0433bff15
+  checksum: 10/89dd2c367d348d23e8f8ad8acf2ffb41cc5881722b1b9afde4b674e1280fae2383e412bdc7751641c877a412fcad91684ebb8e5a26695b8f3167944d908df3cc
   languageName: node
   linkType: hard
 
