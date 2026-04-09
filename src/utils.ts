@@ -1,3 +1,4 @@
+import type { SessionData } from '@metamask/multichain-api-client';
 import type { CaipAccountId } from './types/common';
 
 /**
@@ -23,21 +24,15 @@ export function getAddressFromCaipAccountId(caipAccountId: CaipAccountId) {
 }
 
 /**
- * Checks if the given event is an account changed event.
- * @param event - The event to check.
- * @returns True if the event is an account changed event, false otherwise.
- */
-export function isAccountChangedEvent(event: any) {
-  return event?.method === 'wallet_notify' && event?.params?.notification?.method === 'metamask_accountsChanged';
-}
-
-/**
  * Checks if the given event is a session changed event.
  * @param event - The event to check.
  * @returns True if the event is a session changed event, false otherwise.
  */
-export function isSessionChangedEvent(event: any): boolean {
-  return event?.method === 'wallet_sessionChanged';
+export function isSessionChangedEvent(event: any): event is {
+  method: 'wallet_sessionChanged';
+  params: SessionData;
+} {
+  return event?.method === 'wallet_sessionChanged' && typeof event?.params === 'object';
 }
 
 /**

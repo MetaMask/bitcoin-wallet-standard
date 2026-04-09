@@ -1,7 +1,7 @@
 import type { SessionData } from '@metamask/multichain-api-client';
 import type { WalletAccount } from '@wallet-standard/base';
 import { createUnsecuredToken } from 'jsontokens';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockAddress as address,
   mockAddress2 as address2,
@@ -42,18 +42,10 @@ describe('MetamaskWallet', () => {
   let mockClient: ReturnType<typeof createMockClient>;
   let notificationHandler: ReturnType<typeof vi.fn>;
 
-  // Emit account change event
-  const emitAccountChange = (address: string) => {
-    notificationHandler({
-      method: 'wallet_notify',
-      params: {
-        notification: {
-          method: 'metamask_accountsChanged',
-          params: [address],
-        },
-      },
-    });
-  };
+  const emptyBitcoinSessionPayload = () => ({
+    method: 'wallet_sessionChanged' as const,
+    params: { sessionScopes: {} },
+  });
 
   const setupNotificationHandler = () => {
     notificationHandler = vi.fn();
@@ -68,12 +60,7 @@ describe('MetamaskWallet', () => {
     mockCreateSession(mockClient, [_address]);
     setupNotificationHandler();
 
-    const connectPromise = wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
-
-    // Emit account change event
-    emitAccountChange(_address);
-
-    return connectPromise;
+    return wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
   };
 
   // Helper to connect wallet and set account
@@ -81,12 +68,7 @@ describe('MetamaskWallet', () => {
     mockGetSession(mockClient, [_address]);
     setupNotificationHandler();
 
-    const connectPromise = wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
-
-    // Emit account change event
-    emitAccountChange(_address);
-
-    return connectPromise;
+    return wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
   };
 
   const connectAndSetAccountWithSatsConnect = async (_address = address) => {
@@ -115,36 +97,48 @@ describe('MetamaskWallet', () => {
     return connectResult;
   };
 
-  const waitForAccountChange = async (expectedAccount: string, retries = 3, timeout = 500) => {
-    for (let i = 0; i < retries; i++) {
-      const account = wallet.accounts[0]?.address;
-
-      if (account === expectedAccount) {
-        return;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, timeout));
-    }
-
-    throw new Error('Account change not received');
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
     mockClient = createMockClient();
     wallet = new MetaMaskWallet({ client: mockClient, walletName: 'MetaMask Test' });
-
-    // Mock #getInitialSelectedAddress private method to resolve immediately with undefined
-    vi.spyOn(MetaMaskWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(undefined);
   });
 
   describe('constructor', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should initialize with correct properties', () => {
       expect(wallet.version).toBe('1.0.0');
       expect(wallet.name).toBe('MetaMask Test');
       expect(wallet.icon).toBeDefined();
       expect(wallet.chains).toEqual([Chain.MAINNET, Chain.TESTNET, Chain.REGTEST]);
       expect(wallet.accounts).toEqual([]);
+    });
+
+    it('registers wallet_sessionChanged listener and attempts session restore on construction', async () => {
+      const localClient = createMockClient();
+      const w = new MetaMaskWallet({ client: localClient, walletName: 'MetaMask Test' });
+
+      expect(localClient.onNotification).toHaveBeenCalledTimes(1);
+      await vi.runAllTimersAsync();
+      expect(localClient.getSession).toHaveBeenCalled();
+      expect(w.accounts).toEqual([]);
+    });
+
+    it('restores Bitcoin account when getSession returns a session during construction', async () => {
+      const localClient = createMockClient();
+      mockGetSession(localClient, [address]);
+      const w = new MetaMaskWallet({ client: localClient, walletName: 'MetaMask Test' });
+
+      await vi.runAllTimersAsync();
+
+      expect(w.accounts.length).toBe(1);
+      expect(w.accounts[0]?.address).toBe(address);
     });
 
     it('should initialize with default properties', () => {
@@ -191,25 +185,6 @@ describe('MetamaskWallet', () => {
       expect(result.accounts.length).toBe(1);
       expect(result.accounts[0]?.address).toBe(address);
     });
-
-    it('should use fallback when no accountsChanged event is received', async () => {
-      mockGetSession(mockClient, [address]);
-
-      // Simulate no accountsChanged event (timeout will trigger)
-      vi.useFakeTimers();
-      const connectPromise = wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
-
-      // Fast-forward timer
-      await vi.runAllTimersAsync();
-
-      vi.useRealTimers();
-
-      const result = await connectPromise;
-
-      expect(mockClient.getSession).toHaveBeenCalled();
-      expect(result.accounts.length).toBe(1);
-      expect(result.accounts[0]?.address).toBe(address);
-    });
   });
 
   describe('events', () => {
@@ -239,6 +214,15 @@ describe('MetamaskWallet', () => {
       expect(wallet.accounts).toEqual([]);
       expect(mockClient.revokeSession).toHaveBeenCalled();
       expect(changeListener).toHaveBeenCalledWith({ accounts: [] });
+    });
+
+    it('should not emit change when disconnecting while already disconnected', async () => {
+      const changeListener = vi.fn();
+      wallet.features[BitcoinEvents].on('change', changeListener);
+
+      await wallet.features[BitcoinDisconnect].disconnect();
+
+      expect(changeListener).not.toHaveBeenCalled();
     });
   });
 
@@ -434,15 +418,49 @@ describe('MetamaskWallet', () => {
     });
   });
 
-  describe('handleAccountsChangedEvent', () => {
-    it('should call the change handler with new accounts when using bitcoin standard connection', async () => {
+  describe('handleSessionChangedEvent', () => {
+    it('should disconnect without revoking session when session has no Bitcoin scopes', async () => {
+      await connectAndSetAccount();
+
       const changeListener = vi.fn();
       wallet.features[BitcoinEvents].on('change', changeListener);
 
-      await connectAndSetAccount();
-      mockGetSession(mockClient, [address, address2]);
+      await notificationHandler(emptyBitcoinSessionPayload());
 
-      // Simulate accountsChanged event with no address
+      expect(wallet.accounts).toEqual([]);
+      expect(mockClient.revokeSession).not.toHaveBeenCalled();
+      expect(changeListener).toHaveBeenCalledWith({ accounts: [] });
+    });
+
+    it('updates account and emits change when wallet_sessionChanged includes a Bitcoin scope with a different first account', async () => {
+      await connectAndSetAccount();
+
+      const changeListener = vi.fn();
+      wallet.features[BitcoinEvents].on('change', changeListener);
+
+      await notificationHandler({
+        method: 'wallet_sessionChanged' as const,
+        params: {
+          sessionScopes: {
+            [CaipScope.MAINNET]: {
+              accounts: [`${CaipScope.MAINNET}:${address2}`],
+              methods: [],
+              notifications: [],
+            },
+          },
+        },
+      });
+
+      expect(wallet.accounts[0]?.address).toBe(address2);
+      expect(changeListener).toHaveBeenCalledWith({ accounts: wallet.accounts });
+    });
+
+    it('ignores non-wallet_sessionChanged notifications', async () => {
+      await connectAndSetAccount();
+
+      const changeListener = vi.fn();
+      wallet.features[BitcoinEvents].on('change', changeListener);
+
       await notificationHandler({
         method: 'wallet_notify',
         params: {
@@ -453,23 +471,31 @@ describe('MetamaskWallet', () => {
         },
       });
 
-      expect(changeListener).toHaveBeenCalledWith({ accounts: wallet.accounts });
+      expect(changeListener).not.toHaveBeenCalled();
+      expect(wallet.accounts[0]?.address).toBe(address);
     });
 
-    it('should use address from getInitialSelectedAddress', async () => {
-      // Mocks
-      vi.spyOn(MetaMaskWallet.prototype as any, 'getInitialSelectedAddress').mockResolvedValue(address2);
-      mockCreateSession(mockClient, [address, address2]);
-      mockGetSession(mockClient, [address, address2]);
+    it('does not emit change when wallet_sessionChanged includes the same first account', async () => {
+      await connectAndSetAccount();
 
-      // Create new wallet with mocked getInitialSelectedAddress
-      const walletWithInitialAddress = new MetaMaskWallet({ client: mockClient });
+      const changeListener = vi.fn();
+      wallet.features[BitcoinEvents].on('change', changeListener);
 
-      // Connect and verify the address from getInitialSelectedAddress was used
-      const result = await walletWithInitialAddress.features[BitcoinConnect].connect({
-        purposes: [AddressPurpose.Payment],
+      await notificationHandler({
+        method: 'wallet_sessionChanged' as const,
+        params: {
+          sessionScopes: {
+            [CaipScope.MAINNET]: {
+              accounts: [`${CaipScope.MAINNET}:${address}`],
+              methods: [],
+              notifications: [],
+            },
+          },
+        },
       });
-      expect(result.accounts[0]?.address).toBe(address2);
+
+      expect(changeListener).not.toHaveBeenCalled();
+      expect(wallet.accounts[0]?.address).toBe(address);
     });
   });
 
@@ -494,58 +520,32 @@ describe('MetamaskWallet', () => {
     });
 
     it('should update account and scope to the first available scope in priority order', () => {
-      (wallet as any).updateSession(session, undefined);
+      (wallet as any).updateSession(session);
 
       expect(wallet.accounts[0]?.address).toBe(address);
       expect((wallet as any).scope).toBe(CaipScope.MAINNET);
     });
 
-    it('should use the selectedAddress if provided and valid', () => {
-      (wallet as any).updateSession(session, address);
-
-      expect(wallet.accounts[0]?.address).toBe(address);
-      expect((wallet as any).scope).toBe(CaipScope.MAINNET);
-    });
-
-    it("should default to the first account in the scope if selectedAddress doesn't exists", () => {
-      (wallet as any).updateSession(session, address2);
-
-      expect(wallet.accounts[0]?.address).toBe(address);
-      expect((wallet as any).scope).toBe(CaipScope.MAINNET);
-    });
-
-    it('should fall back to the previously saved account if selectedAddress is not provided', () => {
-      (wallet as any).updateSession(session, undefined);
-
-      const previousAccount = wallet.accounts[0];
-      (wallet as any).updateSession(session, undefined);
-
-      expect(wallet.accounts[0]).toEqual(previousAccount);
-    });
-
-    it('should default to the first account in the scope if no selectedAddress or previous account exists', () => {
-      (wallet as any).updateSession(session, undefined);
+    it('should use the first account from the highest-priority scope', () => {
+      (wallet as any).updateSession(session);
 
       expect(wallet.accounts[0]?.address).toBe(address);
       expect((wallet as any).scope).toBe(CaipScope.MAINNET);
     });
 
     it('should set account to undefined if no scopes are available', () => {
-      (wallet as any).updateSession({ sessionScopes: {} }, undefined);
+      (wallet as any).updateSession({ sessionScopes: {} });
 
       expect(wallet.accounts).toEqual([]);
       expect((wallet as any).scope).toBeUndefined();
     });
 
     it('should set account to undefined if the scope has no accounts', () => {
-      (wallet as any).updateSession(
-        {
-          sessionScopes: {
-            [CaipScope.MAINNET]: { accounts: [] },
-          },
+      (wallet as any).updateSession({
+        sessionScopes: {
+          [CaipScope.MAINNET]: { accounts: [] },
         },
-        undefined,
-      );
+      });
 
       expect(wallet.accounts).toEqual([]);
       expect((wallet as any).scope).toBeUndefined();
@@ -555,9 +555,20 @@ describe('MetamaskWallet', () => {
       const changeListener = vi.fn();
       wallet.features[BitcoinEvents].on('change', changeListener);
 
-      (wallet as any).updateSession(session, address);
+      (wallet as any).updateSession(session);
 
       expect(changeListener).toHaveBeenCalledWith({ accounts: wallet.accounts });
+    });
+
+    it('should not emit a "change" event when account stays the same', () => {
+      (wallet as any).updateSession(session);
+
+      const changeListener = vi.fn();
+      wallet.features[BitcoinEvents].on('change', changeListener);
+
+      (wallet as any).updateSession(session);
+
+      expect(changeListener).not.toHaveBeenCalled();
     });
   });
 
@@ -894,21 +905,48 @@ describe('MetamaskWallet', () => {
 
         removeListener2();
 
-        mockGetSession(mockClient, [address2]);
-        emitAccountChange(address2);
-        await waitForAccountChange(address2);
+        await notificationHandler({
+          method: 'wallet_sessionChanged' as const,
+          params: {
+            sessionScopes: {
+              [CaipScope.MAINNET]: {
+                accounts: [`${CaipScope.MAINNET}:${address2}`],
+                methods: [],
+                notifications: [],
+              },
+            },
+          },
+        });
 
         removeListener3();
 
-        mockGetSession(mockClient, [address]);
-        emitAccountChange(address);
-        await waitForAccountChange(address);
+        await notificationHandler({
+          method: 'wallet_sessionChanged' as const,
+          params: {
+            sessionScopes: {
+              [CaipScope.MAINNET]: {
+                accounts: [`${CaipScope.MAINNET}:${address}`],
+                methods: [],
+                notifications: [],
+              },
+            },
+          },
+        });
 
         removeListener1();
 
-        mockGetSession(mockClient, [address2]);
-        emitAccountChange(address2);
-        await waitForAccountChange(address2);
+        await notificationHandler({
+          method: 'wallet_sessionChanged' as const,
+          params: {
+            sessionScopes: {
+              [CaipScope.MAINNET]: {
+                accounts: [`${CaipScope.MAINNET}:${address2}`],
+                methods: [],
+                notifications: [],
+              },
+            },
+          },
+        });
 
         expect(changeListener1).toHaveBeenCalledTimes(3);
         expect(changeListener2).toHaveBeenCalledTimes(1);
