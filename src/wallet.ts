@@ -365,6 +365,7 @@ export class MetaMaskWallet implements Wallet {
       },
     });
 
+    console.log('WalletStandard::#createSession', { session });
     this.updateSession(session);
   };
 
