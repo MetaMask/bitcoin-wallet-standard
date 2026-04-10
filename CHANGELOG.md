@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0]
+
 ### Added
 
+- **BREAKING** Add `wallet_sessionChanged` listener for handling selecting account changes and for auto connecting and disconnecting the provider when session changes are initiated outside of the provider itself ([#25](https://github.com/MetaMask/bitcoin-wallet-standard/pull/25))
 - Add compatibility with Sats Connect v4 API
-- Add `wallet_sessionChanged` listener for handling selecting account changes and for auto connecting and disconnecting the provider when session changes are initiated outside of the provider itself ([#25](https://github.com/MetaMask/bitcoin-wallet-standard/pull/25))
 - Add compatibility with Sats Connect v4 API ([#26](https://github.com/MetaMask/bitcoin-wallet-standard/pull/26))
+- docs: add usage example for wallet standard ([#24](https://github.com/MetaMask/bitcoin-wallet-standard/pull/24))
 
 ### Removed
 
@@ -37,7 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
-[Unreleased]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MetaMask/bitcoin-wallet-standard/releases/tag/v0.1.0
