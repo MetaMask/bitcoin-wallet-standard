@@ -95,7 +95,7 @@ export class MetaMaskWallet implements Wallet {
   readonly name;
   readonly icon = metamaskIcon;
   readonly chains: IdentifierArray = BITCOIN_CHAINS;
-  static readonly bitcoinScopes = [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.REGTEST];
+  static readonly bitcoinScopes = [CaipScope.MAINNET, CaipScope.TESTNET, CaipScope.TESTNET4, CaipScope.REGTEST];
   protected scope: CaipScope | undefined;
   #account: WalletStandardWalletAccount | undefined;
   #removeSessionChangedListener: (() => void) | undefined;

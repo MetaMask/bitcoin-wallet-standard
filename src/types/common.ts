@@ -15,7 +15,7 @@ export type MetaMaskWalletOptions = {
 export enum CaipScope {
   MAINNET = 'bip122:000000000019d6689c085ae165831e93',
   TESTNET = 'bip122:000000000933ea01ad0ee984209779ba',
-  // TESTNET4 = 'bip122:00000000da84f2bafbbc53dee25a72ae',
+  TESTNET4 = 'bip122:00000000da84f2bafbbc53dee25a72ae',
   // SIGNET = 'bip122:00000008819873e925422c1ff0f99f7c',
   REGTEST = 'bip122:regtest',
 }
@@ -26,13 +26,14 @@ export enum CaipScope {
 export enum Chain {
   MAINNET = 'bitcoin:mainnet',
   TESTNET = 'bitcoin:testnet',
+  TESTNET4 = 'bitcoin:testnet4',
   REGTEST = 'bitcoin:regtest',
 }
 
 export const scopeToChain: Record<CaipScope, Chain> = {
   [CaipScope.MAINNET]: Chain.MAINNET,
   [CaipScope.TESTNET]: Chain.TESTNET,
-  // [Scope.Testnet4]: 'testnet4',
+  [CaipScope.TESTNET4]: Chain.TESTNET4,
   // [Scope.Signet]: 'signet',
   [CaipScope.REGTEST]: Chain.REGTEST,
 };
