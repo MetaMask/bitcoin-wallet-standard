@@ -48,11 +48,11 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@exodus/bitcoin-wallet-standard": "^0.0.0",
-    "@metamask/multichain-api-client": "^0.11.0",
-    "@wallet-standard/base": "^1.1.0",
-    "@wallet-standard/features": "^1.1.0",
-    "@wallet-standard/wallet": "^1.1.0",
+    "@exodus/bitcoin-wallet-standard": "0.0.0",
+    "@metamask/multichain-api-client": "0.11.0",
+    "@wallet-standard/base": "1.1.0",
+    "@wallet-standard/features": "1.1.0",
+    "@wallet-standard/wallet": "1.1.0",
     "jsontokens": "^4.0.1"
   },
   "devDependencies": {
