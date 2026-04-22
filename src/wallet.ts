@@ -247,7 +247,7 @@ export class MetaMaskWallet implements Wallet {
   #getAccountFromAddress(address: string) {
     return new WalletStandardWalletAccount({
       address,
-      publicKey: new Uint8Array(Buffer.from(address)),
+      publicKey: new TextEncoder().encode(address),
       chains: this.chains,
     });
   }
