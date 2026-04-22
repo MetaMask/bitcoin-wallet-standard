@@ -1,6 +1,38 @@
 import type { SessionData } from '@metamask/multichain-api-client';
 import { describe, expect, it } from 'vitest';
-import { getAddressFromCaipAccountId, isSessionChangedEvent } from './utils';
+import { decodeToken, getAddressFromCaipAccountId, isSessionChangedEvent } from './utils';
+
+describe('decodeToken', () => {
+  it('should decode a valid unsecured JWT token', () => {
+    const header = btoa(JSON.stringify({ typ: 'JWT', alg: 'none' }));
+    const payload = btoa(JSON.stringify({ purposes: ['payment'] }));
+    const token = `${header}.${payload}.`;
+
+    const result = decodeToken(token);
+
+    expect(result.header).toEqual({ typ: 'JWT', alg: 'none' });
+    expect(result.payload).toEqual({ purposes: ['payment'] });
+    expect(result.signature).toBe('');
+  });
+
+  it('should decode a JWT token with a signature part', () => {
+    const header = btoa(JSON.stringify({ alg: 'HS256' }));
+    const payload = btoa(JSON.stringify({ sub: '1234' }));
+    const token = `${header}.${payload}.somesignature`;
+
+    const result = decodeToken(token);
+
+    expect(result.header).toEqual({ alg: 'HS256' });
+    expect(result.payload).toEqual({ sub: '1234' });
+    expect(result.signature).toBe('somesignature');
+  });
+
+  it('should throw for tokens with wrong number of parts', () => {
+    expect(() => decodeToken('only.two')).toThrow('Invalid JWT token: expected 3 parts.');
+    expect(() => decodeToken('a.b.c.d')).toThrow('Invalid JWT token: expected 3 parts.');
+    expect(() => decodeToken('')).toThrow('Invalid JWT token: expected 3 parts.');
+  });
+});
 
 describe('getAddressFromCaipAccountId', () => {
   it('should return the account address for a valid CAIP-10 account ID', () => {

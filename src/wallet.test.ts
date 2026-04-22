@@ -1,6 +1,5 @@
 import type { SessionData } from '@metamask/multichain-api-client';
 import type { WalletAccount } from '@wallet-standard/base';
-import { createUnsecuredToken } from 'jsontokens';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockAddress as address,
@@ -37,6 +36,16 @@ import {
   WalletType,
 } from './types/satsConnect';
 import { MetaMaskWallet, WalletStandardWalletAccount } from './wallet';
+
+/**
+ * Creates an unsecured JWT token (alg: none) from a payload object.
+ * Test-only replacement for jsontokens' createUnsecuredToken.
+ */
+function createUnsecuredToken(payload: Record<string, unknown>): string {
+  const header = btoa(JSON.stringify({ typ: 'JWT', alg: 'none' }));
+  const body = btoa(JSON.stringify(payload));
+  return `${header}.${body}.`;
+}
 
 describe('MetamaskWallet', () => {
   let wallet: MetaMaskWallet;

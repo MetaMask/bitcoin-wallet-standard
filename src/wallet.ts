@@ -4,7 +4,6 @@ import type { MultichainApiClient, SessionData } from '@metamask/multichain-api-
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput } from '@wallet-standard/features';
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
-import { decodeToken } from 'jsontokens';
 import {
   BitcoinDisconnect,
   BitcoinEvents,
@@ -62,7 +61,7 @@ import {
   StacksNetworkType,
   WalletType,
 } from './types/satsConnect';
-import { getAddressFromCaipAccountId, isSessionChangedEvent } from './utils';
+import { decodeToken, getAddressFromCaipAccountId, isSessionChangedEvent } from './utils';
 
 /**
  * A read-only implementation of a wallet account.

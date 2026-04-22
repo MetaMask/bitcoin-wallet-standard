@@ -696,7 +696,6 @@ __metadata:
     "@wallet-standard/wallet": "npm:1.1.0"
     "@yarnpkg/types": "npm:^4.0.0-rc.52"
     depcheck: "npm:^1.4.3"
-    jsontokens: "npm:^4.0.1"
     prettier: "npm:^3.5.3"
     sats-connect: "npm:^4.2.1"
     ts-node: "npm:^10.7.0"
@@ -3217,7 +3216,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsontokens@npm:4.0.1, jsontokens@npm:^4.0.1":
+"jsontokens@npm:4.0.1":
   version: 4.0.1
   resolution: "jsontokens@npm:4.0.1"
   dependencies:
