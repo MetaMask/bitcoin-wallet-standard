@@ -44,6 +44,11 @@ const { accounts } = await metamask_wallet.features['bitcoin:connect'].connect({
   purposes: ['payment'],
 })
 
+// Request a taproot account for ordinals
+const { accounts: ordinalAccounts } = await metamask_wallet.features['bitcoin:connect'].connect({
+  purposes: ['ordinals'],
+})
+
 wallet.features['bitcoin:events'].on('change', (event => {
   // Handle events
 }));
@@ -189,6 +194,12 @@ const PROVIDER_ID = '__walletStandardProvider';
 const connectResponse = await WalletV4.request('getAddresses', {
   purposes: ['payment'],
   message: 'Address for receiving BTC',
+});
+
+// Connect and get a taproot address for ordinals
+const ordinalsResponse = await WalletV4.request('getAddresses', {
+  purposes: ['ordinals'],
+  message: 'Address for receiving ordinals',
 });
 
 if (connectResponse.status === 'error') {
