@@ -732,7 +732,7 @@ describe('MetamaskWallet', () => {
           result: {
             signature,
             address,
-            protocol: MessageSigningProtocols.ECDSA,
+            protocol: MessageSigningProtocols.BIP322,
           },
         });
       });

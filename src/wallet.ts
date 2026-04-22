@@ -538,7 +538,7 @@ export class MetaMaskWallet implements Wallet {
               signature,
               messageHash: '',
               address: this.#account?.address ?? '',
-              protocol: MessageSigningProtocols.ECDSA,
+              protocol: MessageSigningProtocols.BIP322,
             });
           }
 
