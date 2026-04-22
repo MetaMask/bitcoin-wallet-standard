@@ -573,10 +573,22 @@ describe('MetamaskWallet', () => {
   });
 
   describe('SatsConnect V4 request', () => {
-    const expectedNetwork = {
+    const expectedMainnetNetwork = {
       bitcoin: { name: BitcoinNetworkType.Mainnet },
       stacks: { name: StacksNetworkType.Mainnet },
       spark: { name: SparkNetworkType.Mainnet },
+    };
+
+    const expectedTestnetNetwork = {
+      bitcoin: { name: BitcoinNetworkType.Testnet },
+      stacks: { name: StacksNetworkType.Testnet },
+      spark: { name: SparkNetworkType.Regtest },
+    };
+
+    const expectedRegtestNetwork = {
+      bitcoin: { name: BitcoinNetworkType.Regtest },
+      stacks: { name: StacksNetworkType.Testnet },
+      spark: { name: SparkNetworkType.Regtest },
     };
 
     describe('getInfo', () => {
@@ -614,7 +626,41 @@ describe('MetamaskWallet', () => {
                 walletType: WalletType.SOFTWARE,
               },
             ],
-            network: expectedNetwork,
+            network: expectedMainnetNetwork,
+          },
+        });
+      });
+
+      it('should return testnet network when connected to testnet scope', async () => {
+        mockGetSession(mockClient, [address], CaipScope.TESTNET);
+        setupNotificationHandler();
+        await wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
+
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('getAddresses', {
+          purposes: [AddressPurpose.Payment],
+        });
+
+        expect(result).toMatchObject({
+          jsonrpc: '2.0',
+          result: {
+            network: expectedTestnetNetwork,
+          },
+        });
+      });
+
+      it('should return regtest network when connected to regtest scope', async () => {
+        mockGetSession(mockClient, [address], CaipScope.REGTEST);
+        setupNotificationHandler();
+        await wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
+
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('getAddresses', {
+          purposes: [AddressPurpose.Payment],
+        });
+
+        expect(result).toMatchObject({
+          jsonrpc: '2.0',
+          result: {
+            network: expectedRegtestNetwork,
           },
         });
       });
@@ -654,7 +700,7 @@ describe('MetamaskWallet', () => {
           result: {
             addresses: [expect.objectContaining({ address })],
             walletType: WalletType.SOFTWARE,
-            network: expectedNetwork,
+            network: expectedMainnetNetwork,
           },
         });
       });

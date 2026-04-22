@@ -21,24 +21,32 @@ export const createMockClient = () => {
 };
 
 // Helper to setup a session with an account
-export const mockGetSession = (mockClient: ReturnType<typeof createMockClient>, addresses?: string[]) => {
+export const mockGetSession = (
+  mockClient: ReturnType<typeof createMockClient>,
+  addresses?: string[],
+  scope: CaipScope = mockScope,
+) => {
   mockClient.getSession.mockResolvedValue({
     sessionScopes: addresses
       ? {
-          [mockScope]: {
-            accounts: addresses.map((address) => `${mockScope}:${address}`),
+          [scope]: {
+            accounts: addresses.map((address) => `${scope}:${address}`),
           },
         }
       : {},
   });
 };
 
-export const mockCreateSession = (mockClient: ReturnType<typeof createMockClient>, addresses?: string[]) => {
+export const mockCreateSession = (
+  mockClient: ReturnType<typeof createMockClient>,
+  addresses?: string[],
+  scope: CaipScope = mockScope,
+) => {
   mockClient.createSession.mockResolvedValue({
     sessionScopes: addresses
       ? {
-          [mockScope]: {
-            accounts: addresses.map((address) => `${mockScope}:${address}`),
+          [scope]: {
+            accounts: addresses.map((address) => `${scope}:${address}`),
           },
         }
       : {},

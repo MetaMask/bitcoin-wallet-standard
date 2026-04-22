@@ -252,6 +252,33 @@ export class MetaMaskWallet implements Wallet {
     });
   }
 
+  /**
+   * Returns the SatsConnect network object based on the current scope.
+   * Maps the CAIP scope to the corresponding Bitcoin, Stacks, and Spark network types.
+   */
+  #getNetworkForCurrentScope() {
+    switch (this.scope) {
+      case CaipScope.TESTNET:
+        return {
+          bitcoin: { name: BitcoinNetworkType.Testnet },
+          stacks: { name: StacksNetworkType.Testnet },
+          spark: { name: SparkNetworkType.Regtest },
+        };
+      case CaipScope.REGTEST:
+        return {
+          bitcoin: { name: BitcoinNetworkType.Regtest },
+          stacks: { name: StacksNetworkType.Testnet },
+          spark: { name: SparkNetworkType.Regtest },
+        };
+      default:
+        return {
+          bitcoin: { name: BitcoinNetworkType.Mainnet },
+          stacks: { name: StacksNetworkType.Mainnet },
+          spark: { name: SparkNetworkType.Mainnet },
+        };
+    }
+  }
+
   async #signMessageInternal(message: string): Promise<string> {
     if (!this.scope) {
       throw new Error('Scope not found.');
@@ -461,11 +488,7 @@ export class MetaMaskWallet implements Wallet {
         const error = (code: RpcErrorCode, message: string): RpcResponse<Method> =>
           ({ jsonrpc: '2.0', id: null, error: { code, message } }) as RpcResponse<Method>;
 
-        const network = {
-          bitcoin: { name: BitcoinNetworkType.Mainnet },
-          stacks: { name: StacksNetworkType.Mainnet },
-          spark: { name: SparkNetworkType.Mainnet },
-        };
+        const network = this.#getNetworkForCurrentScope();
 
         switch (method as string) {
           case 'getInfo': {
