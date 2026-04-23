@@ -4,7 +4,6 @@ import type { MultichainApiClient, SessionData } from '@metamask/multichain-api-
 import type { IdentifierArray, Wallet } from '@wallet-standard/base';
 import type { StandardConnectOutput } from '@wallet-standard/features';
 import { ReadonlyWalletAccount } from '@wallet-standard/wallet';
-import { decodeToken } from 'jsontokens';
 import {
   BitcoinDisconnect,
   BitcoinEvents,
@@ -62,7 +61,7 @@ import {
   StacksNetworkType,
   WalletType,
 } from './types/satsConnect';
-import { getAddressFromCaipAccountId, isSessionChangedEvent } from './utils';
+import { decodeToken, getAddressFromCaipAccountId, isSessionChangedEvent } from './utils';
 
 /**
  * A read-only implementation of a wallet account.
@@ -247,9 +246,36 @@ export class MetaMaskWallet implements Wallet {
   #getAccountFromAddress(address: string) {
     return new WalletStandardWalletAccount({
       address,
-      publicKey: new Uint8Array(Buffer.from(address)),
+      publicKey: new TextEncoder().encode(address),
       chains: this.chains,
     });
+  }
+
+  /**
+   * Returns the SatsConnect network object based on the current scope.
+   * Maps the CAIP scope to the corresponding Bitcoin, Stacks, and Spark network types.
+   */
+  #getNetworkForCurrentScope() {
+    switch (this.scope) {
+      case CaipScope.TESTNET:
+        return {
+          bitcoin: { name: BitcoinNetworkType.Testnet },
+          stacks: { name: StacksNetworkType.Testnet },
+          spark: { name: SparkNetworkType.Regtest },
+        };
+      case CaipScope.REGTEST:
+        return {
+          bitcoin: { name: BitcoinNetworkType.Regtest },
+          stacks: { name: StacksNetworkType.Testnet },
+          spark: { name: SparkNetworkType.Regtest },
+        };
+      default:
+        return {
+          bitcoin: { name: BitcoinNetworkType.Mainnet },
+          stacks: { name: StacksNetworkType.Mainnet },
+          spark: { name: SparkNetworkType.Mainnet },
+        };
+    }
   }
 
   async #signMessageInternal(message: string): Promise<string> {
@@ -461,11 +487,7 @@ export class MetaMaskWallet implements Wallet {
         const error = (code: RpcErrorCode, message: string): RpcResponse<Method> =>
           ({ jsonrpc: '2.0', id: null, error: { code, message } }) as RpcResponse<Method>;
 
-        const network = {
-          bitcoin: { name: BitcoinNetworkType.Mainnet },
-          stacks: { name: StacksNetworkType.Mainnet },
-          spark: { name: SparkNetworkType.Mainnet },
-        };
+        const network = this.#getNetworkForCurrentScope();
 
         switch (method as string) {
           case 'getInfo': {
@@ -515,7 +537,7 @@ export class MetaMaskWallet implements Wallet {
               signature,
               messageHash: '',
               address: this.#account?.address ?? '',
-              protocol: MessageSigningProtocols.ECDSA,
+              protocol: MessageSigningProtocols.BIP322,
             });
           }
 

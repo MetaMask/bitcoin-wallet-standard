@@ -1,6 +1,5 @@
 import type { SessionData } from '@metamask/multichain-api-client';
 import type { WalletAccount } from '@wallet-standard/base';
-import { createUnsecuredToken } from 'jsontokens';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mockAddress as address,
@@ -10,6 +9,7 @@ import {
   mockCreateSession,
   mockGetSession,
   mockPublicKey as publicKey,
+  mockPublicKey2 as publicKey2,
   mockScope as scope,
 } from '../tests/mocks';
 import {
@@ -36,6 +36,16 @@ import {
   WalletType,
 } from './types/satsConnect';
 import { MetaMaskWallet, WalletStandardWalletAccount } from './wallet';
+
+/**
+ * Creates an unsecured JWT token (alg: none) from a payload object.
+ * Test-only replacement for jsontokens' createUnsecuredToken.
+ */
+function createUnsecuredToken(payload: Record<string, unknown>): string {
+  const header = btoa(JSON.stringify({ typ: 'JWT', alg: 'none' }));
+  const body = btoa(JSON.stringify(payload));
+  return `${header}.${body}.`;
+}
 
 describe('MetamaskWallet', () => {
   let wallet: MetaMaskWallet;
@@ -573,10 +583,22 @@ describe('MetamaskWallet', () => {
   });
 
   describe('SatsConnect V4 request', () => {
-    const expectedNetwork = {
+    const expectedMainnetNetwork = {
       bitcoin: { name: BitcoinNetworkType.Mainnet },
       stacks: { name: StacksNetworkType.Mainnet },
       spark: { name: SparkNetworkType.Mainnet },
+    };
+
+    const expectedTestnetNetwork = {
+      bitcoin: { name: BitcoinNetworkType.Testnet },
+      stacks: { name: StacksNetworkType.Testnet },
+      spark: { name: SparkNetworkType.Regtest },
+    };
+
+    const expectedRegtestNetwork = {
+      bitcoin: { name: BitcoinNetworkType.Regtest },
+      stacks: { name: StacksNetworkType.Testnet },
+      spark: { name: SparkNetworkType.Regtest },
     };
 
     describe('getInfo', () => {
@@ -608,13 +630,47 @@ describe('MetamaskWallet', () => {
             addresses: [
               {
                 address,
-                publicKey: Buffer.from(address).toString('hex'),
+                publicKey: Buffer.from(publicKey).toString('hex'),
                 purpose: AddressPurpose.Payment,
                 addressType: AddressType.p2wpkh,
                 walletType: WalletType.SOFTWARE,
               },
             ],
-            network: expectedNetwork,
+            network: expectedMainnetNetwork,
+          },
+        });
+      });
+
+      it('should return testnet network when connected to testnet scope', async () => {
+        mockGetSession(mockClient, [address], CaipScope.TESTNET);
+        setupNotificationHandler();
+        await wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
+
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('getAddresses', {
+          purposes: [AddressPurpose.Payment],
+        });
+
+        expect(result).toMatchObject({
+          jsonrpc: '2.0',
+          result: {
+            network: expectedTestnetNetwork,
+          },
+        });
+      });
+
+      it('should return regtest network when connected to regtest scope', async () => {
+        mockGetSession(mockClient, [address], CaipScope.REGTEST);
+        setupNotificationHandler();
+        await wallet.features[BitcoinConnect].connect({ purposes: [AddressPurpose.Payment] });
+
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('getAddresses', {
+          purposes: [AddressPurpose.Payment],
+        });
+
+        expect(result).toMatchObject({
+          jsonrpc: '2.0',
+          result: {
+            network: expectedRegtestNetwork,
           },
         });
       });
@@ -633,7 +689,7 @@ describe('MetamaskWallet', () => {
           result: [
             {
               address,
-              publicKey: Buffer.from(address).toString('hex'),
+              publicKey: Buffer.from(publicKey).toString('hex'),
               purpose: AddressPurpose.Payment,
               addressType: AddressType.p2wpkh,
               walletType: WalletType.SOFTWARE,
@@ -654,7 +710,7 @@ describe('MetamaskWallet', () => {
           result: {
             addresses: [expect.objectContaining({ address })],
             walletType: WalletType.SOFTWARE,
-            network: expectedNetwork,
+            network: expectedMainnetNetwork,
           },
         });
       });
@@ -685,7 +741,7 @@ describe('MetamaskWallet', () => {
           result: {
             signature,
             address,
-            protocol: MessageSigningProtocols.ECDSA,
+            protocol: MessageSigningProtocols.BIP322,
           },
         });
       });
@@ -825,7 +881,7 @@ describe('MetamaskWallet', () => {
 
         expect(result.addresses.length).toBe(1);
         expect(result.addresses[0]?.address).toBe(address);
-        expect(result.addresses[0]?.publicKey).toBe(Buffer.from(address).toString('hex'));
+        expect(result.addresses[0]?.publicKey).toBe(Buffer.from(publicKey).toString('hex'));
         expect(result.addresses[0]?.purpose).toBe(AddressPurpose.Payment);
         expect(result.addresses[0]?.addressType).toBe(AddressType.p2wpkh);
 
@@ -859,7 +915,7 @@ describe('MetamaskWallet', () => {
           addresses: [
             {
               address: address2,
-              publicKey: Buffer.from(address2).toString('hex'),
+              publicKey: Buffer.from(publicKey2).toString('hex'),
               purpose: AddressPurpose.Payment,
               addressType: AddressType.p2wpkh,
               walletType: WalletType.SOFTWARE,

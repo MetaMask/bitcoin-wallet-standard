@@ -1,11 +1,10 @@
-import bs58 from 'bs58';
 import { vi } from 'vitest';
 import { CaipScope } from '../src/types/common';
 
-export const mockAddress = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-export const mockAddress2 = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';
-export const mockPublicKey = bs58.decode(mockAddress);
-export const mockPublicKey2 = bs58.decode(mockAddress2);
+export const mockAddress = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
+export const mockAddress2 = 'bc1qrp33g0q5b5698ahp5jnf0y5ems7c3mfjntv5lg';
+export const mockPublicKey = new TextEncoder().encode(mockAddress);
+export const mockPublicKey2 = new TextEncoder().encode(mockAddress2);
 export const mockScope = CaipScope.MAINNET;
 
 // Create mock for MultichainApiClient
@@ -21,24 +20,32 @@ export const createMockClient = () => {
 };
 
 // Helper to setup a session with an account
-export const mockGetSession = (mockClient: ReturnType<typeof createMockClient>, addresses?: string[]) => {
+export const mockGetSession = (
+  mockClient: ReturnType<typeof createMockClient>,
+  addresses?: string[],
+  scope: CaipScope = mockScope,
+) => {
   mockClient.getSession.mockResolvedValue({
     sessionScopes: addresses
       ? {
-          [mockScope]: {
-            accounts: addresses.map((address) => `${mockScope}:${address}`),
+          [scope]: {
+            accounts: addresses.map((address) => `${scope}:${address}`),
           },
         }
       : {},
   });
 };
 
-export const mockCreateSession = (mockClient: ReturnType<typeof createMockClient>, addresses?: string[]) => {
+export const mockCreateSession = (
+  mockClient: ReturnType<typeof createMockClient>,
+  addresses?: string[],
+  scope: CaipScope = mockScope,
+) => {
   mockClient.createSession.mockResolvedValue({
     sessionScopes: addresses
       ? {
-          [mockScope]: {
-            accounts: addresses.map((address) => `${mockScope}:${address}`),
+          [scope]: {
+            accounts: addresses.map((address) => `${scope}:${address}`),
           },
         }
       : {},
