@@ -686,7 +686,7 @@ __metadata:
     "@lavamoat/allow-scripts": "npm:^3.0.4"
     "@lavamoat/preinstall-always-fail": "npm:^2.0.0"
     "@metamask/auto-changelog": "npm:^5.0.1"
-    "@metamask/multichain-api-client": "npm:0.11.0"
+    "@metamask/multichain-api-client": "npm:0.12.0"
     "@ts-bridge/cli": "npm:^0.6.3"
     "@types/node": "npm:^22.13.13"
     "@vitest/coverage-istanbul": "npm:^3.0.7"
@@ -706,10 +706,10 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@metamask/multichain-api-client@npm:0.11.0":
-  version: 0.11.0
-  resolution: "@metamask/multichain-api-client@npm:0.11.0"
-  checksum: 10/fee3751b8bfdce08db37be205aa2d78de6544060ccbe57ff790ddf9c0aad830ee6cfb1844e4ea838ce97f0b7851badd0271cb0ec32ac42d3f7d4cfa15ccb1298
+"@metamask/multichain-api-client@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@metamask/multichain-api-client@npm:0.12.0"
+  checksum: 10/79f7b2e53cae25fb825a825650b98bbedf4d700b82b87a4df90c7e5ae62eb1aa8d3089fcdeaa66b104d737fe1ade93f202eae1b2599346599fccbc62d046a5fa
   languageName: node
   linkType: hard
 
