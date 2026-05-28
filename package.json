@@ -49,13 +49,13 @@
   },
   "dependencies": {
     "@exodus/bitcoin-wallet-standard": "0.0.0",
-    "@metamask/multichain-api-client": "0.11.0",
+    "@metamask/multichain-api-client": "0.12.0",
     "@wallet-standard/base": "1.1.0",
     "@wallet-standard/features": "1.1.0",
     "@wallet-standard/wallet": "1.1.0"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.15.3",
+    "@arethetypeswrong/cli": "^0.18.2",
     "@biomejs/biome": "1.9.4",
     "@lavamoat/allow-scripts": "^3.0.4",
     "@lavamoat/preinstall-always-fail": "^2.0.0",
@@ -73,6 +73,9 @@
     "typescript": "~5.7.3",
     "vite": "^6.2.4",
     "vitest": "^3.0.7"
+  },
+  "resolutions": {
+    "fflate": "0.8.2"
   },
   "packageManager": "yarn@4.1.1",
   "engines": {
