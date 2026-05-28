@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0]
+
 ### Added
 
-- Add testnet4 support (`CaipScope.TESTNET4`, `Chain.TESTNET4`, `scopeToChain` mapping)
+- feat(scope): add testnet4 network support ([#31](https://github.com/MetaMask/bitcoin-wallet-standard/pull/31))
+
+### Changed
+
+- chore: update multichain-api-client ([#36](https://github.com/MetaMask/bitcoin-wallet-standard/pull/36))
+
+### Fixed
+
+- fix: address audit findings for correctness and security ([#32](https://github.com/MetaMask/bitcoin-wallet-standard/pull/32))
 
 ## [1.0.0]
 
@@ -44,7 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
-[Unreleased]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.1.0...v0.2.0
