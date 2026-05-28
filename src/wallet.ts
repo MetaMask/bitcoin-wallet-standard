@@ -436,9 +436,6 @@ export class MetaMaskWallet implements Wallet {
         }
 
         const { purposes } = payload as unknown as BitcoinConnectInput;
-        if (purposes.length !== 1 || purposes.at(0) !== AddressPurpose.Payment) {
-          throw new Error(`Only payment addresses are supported. Received: ${purposes.join(', ')}`);
-        }
 
         await this.#connect();
 
@@ -447,7 +444,7 @@ export class MetaMaskWallet implements Wallet {
         }
 
         return {
-          addresses: this.accounts.map(this.#standardAccountToSatsAccount),
+          addresses: this.accounts.map((account) => this.#standardAccountToSatsAccount(account, purposes)),
         };
       },
 
@@ -519,7 +516,8 @@ export class MetaMaskWallet implements Wallet {
             if (method === 'wallet_requestPermissions') {
               return success(true);
             }
-            const addresses = this.accounts.map(this.#standardAccountToSatsAccount);
+            const reqPurposes = (options as Record<string, unknown>)?.purposes as readonly string[] | undefined;
+            const addresses = this.accounts.map((account) => this.#standardAccountToSatsAccount(account, reqPurposes));
             if (method === 'getAccounts') {
               return success(addresses);
             }
@@ -656,12 +654,13 @@ export class MetaMaskWallet implements Wallet {
     };
   };
 
-  #standardAccountToSatsAccount(account: WalletStandardWalletAccount): Address {
+  #standardAccountToSatsAccount(account: WalletStandardWalletAccount, purposes?: readonly string[]): Address {
+    const isOrdinals = purposes?.includes('ordinals');
     return {
       address: account.address,
       publicKey: Buffer.from(account.publicKey).toString('hex'),
-      purpose: AddressPurpose.Payment,
-      addressType: AddressType.p2wpkh,
+      purpose: isOrdinals ? AddressPurpose.Ordinals : AddressPurpose.Payment,
+      addressType: isOrdinals ? AddressType.p2tr : AddressType.p2wpkh,
       walletType: WalletType.SOFTWARE,
     };
   }

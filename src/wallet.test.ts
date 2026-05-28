@@ -674,6 +674,30 @@ describe('MetamaskWallet', () => {
           },
         });
       });
+
+      it('should return P2TR address type for ordinals purpose', async () => {
+        await reconnectAndSetAccount(address);
+
+        const result = await wallet.features[BitcoinSatsConnect].provider.request('getAddresses', {
+          purposes: [AddressPurpose.Ordinals],
+        });
+
+        expect(result).toMatchObject({
+          jsonrpc: '2.0',
+          result: {
+            addresses: [
+              {
+                address,
+                publicKey: Buffer.from(address).toString('hex'),
+                purpose: AddressPurpose.Ordinals,
+                addressType: AddressType.p2tr,
+                walletType: WalletType.SOFTWARE,
+              },
+            ],
+            network: expectedMainnetNetwork,
+          },
+        });
+      });
     });
 
     describe('getAccounts', () => {
