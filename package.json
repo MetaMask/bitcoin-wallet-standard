@@ -77,7 +77,7 @@
   "resolutions": {
     "fflate": "0.8.2"
   },
-  "packageManager": "yarn@4.1.1",
+  "packageManager": "yarn@4.16.0",
   "engines": {
     "node": "^18.20 || ^20.17 || >=22"
   },
