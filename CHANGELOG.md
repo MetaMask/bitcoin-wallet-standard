@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0]
+
+### Uncategorized
+
+- feat: export features ([#40](https://github.com/MetaMask/bitcoin-wallet-standard/pull/40))
+- chore: migrate npm publishing to trusted publishing ([#39](https://github.com/MetaMask/bitcoin-wallet-standard/pull/39))
+
 ## [1.1.0]
 
 ### Added
@@ -54,7 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
-[Unreleased]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/MetaMask/bitcoin-wallet-standard/compare/v0.2.0...v0.3.0
