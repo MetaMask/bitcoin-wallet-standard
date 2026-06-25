@@ -1,6 +1,7 @@
 import { registerWallet } from '@wallet-standard/wallet';
 import type { MetaMaskWalletOptions } from './types/common';
 import { MetaMaskWallet } from './wallet';
+export * from './features';
 
 export function getBitcoinWalletStandard(options: MetaMaskWalletOptions) {
   return new MetaMaskWallet(options);
