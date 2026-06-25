@@ -9,9 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.0]
 
-### Uncategorized
+### Added
 
 - feat: export features ([#40](https://github.com/MetaMask/bitcoin-wallet-standard/pull/40))
+
+### Changed
+
 - chore: migrate npm publishing to trusted publishing ([#39](https://github.com/MetaMask/bitcoin-wallet-standard/pull/39))
 
 ## [1.1.0]
