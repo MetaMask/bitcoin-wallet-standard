@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.0]
 
-### Uncategorized
+### Changed
 
 - chore: make multichain api client a peer dependency ([#42](https://github.com/MetaMask/bitcoin-wallet-standard/pull/42))
 
