@@ -721,6 +721,8 @@ __metadata:
     typescript: "npm:~5.7.3"
     vite: "npm:^6.2.4"
     vitest: "npm:^3.0.7"
+  peerDependencies:
+    "@metamask/multichain-api-client": 0.12.0
   languageName: unknown
   linkType: soft
 
